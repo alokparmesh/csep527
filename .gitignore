@@ -45,3 +45,7 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+SequenceAlignment/bin
+SequenceAlignment/obj
+SequenceAlignment/packages
+SequenceAlignment/.vs
