@@ -15,14 +15,17 @@ namespace SequenceAligner
 
     public class SequenceAlignerOption
     {
-        [OptionList("sequences", Separator = ',', HelpText = "first sequence's accession")]
+        [OptionList("sequences", Separator = ',', HelpText = "two sequences for comparision")]
         public List<string> Sequences { get; set; }
 
-        [OptionList("accessions", Separator =',', HelpText = "first sequence's accession")]
+        [OptionList("accessions", Separator =',', HelpText = "two accessions for comparision")]
         public List<string> Accessions { get; set; }
 
         [Option("alignmentType", DefaultValue = AlignmentType.Local, HelpText = "alignment type local or global")]
         public AlignmentType AlignmentType { get; set; }
+
+        [Option("scoretype", DefaultValue = "BLOSUM62", HelpText = "blosum score type")]
+        public string ScoreType { get; set; }
 
         [Option("gapInitiationCost", DefaultValue = -4, HelpText = "gap initiation cost")]
         public int GapInitiationCost { get; set; }
@@ -30,7 +33,7 @@ namespace SequenceAligner
         [Option("gapExtensionCost", DefaultValue = -4, HelpText = "gap extension cost")]
         public int GapExtensionCost { get; set; }
 
-        [Option("pValue", DefaultValue = false, HelpText = "calculate p-value")]
+        [Option("pValue", DefaultValue = true, HelpText = "calculate p-value")]
         public bool PValue { get; set; }
 
         [Option("full", DefaultValue = false, HelpText = "print full matrix")]

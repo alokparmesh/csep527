@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,19 +11,17 @@ namespace SequenceAligner
     {
         private IScoreProvider scoreProvider;
         private int gapCost;
-        private bool traceBack;
         private CostFunction[,] costMatrix;
         private char[] seq1chars;
         private char[] seq2chars;
 
-        public LocalAligner(IScoreProvider scoreProvider, int gapCost, bool traceBack)
+        public LocalAligner(IScoreProvider scoreProvider, int gapCost)
         {
             this.scoreProvider = scoreProvider;
             this.gapCost = gapCost;
-            this.traceBack = traceBack;
         }
 
-        public IAlignmentResult Align(Sequence seq1, Sequence seq2)
+        public IAlignmentResult Align(Sequence seq1, Sequence seq2, bool traceBack)
         {
             int m = seq1.SequenceString.Length;
             seq1chars = seq1.SequenceString.ToCharArray();
@@ -62,16 +61,16 @@ namespace SequenceAligner
             {
                 for (int j = 0; j < n + 1; j++)
                 {
-                   if(this.costMatrix[i,j].Cost > highestCost)
+                    if (this.costMatrix[i, j].Cost > highestCost)
                     {
                         highestCost = this.costMatrix[i, j].Cost;
-                        firstSequenceEnd = i-1;
-                        secondSequenceEnd = j - 1;
+                        firstSequenceEnd = i;
+                        secondSequenceEnd = j;
                     }
                 }
             }
 
-            if (this.traceBack)
+            if (traceBack)
             {
                 return this.Trace(firstSequenceEnd, secondSequenceEnd);
             }
@@ -85,17 +84,64 @@ namespace SequenceAligner
                     secondSequenceStart,
                     secondSequenceEnd,
                     alignedFirstSequence,
-                    alignedSecondSequence
+                    alignedSecondSequence,
+                    null
                     );
             }
         }
 
+        public void OutpuCostMatrix()
+        {
+            using (var outputWriter = new StreamWriter("costMatrix.csv"))
+            {
+                int rowLength = this.costMatrix.GetLength(0);
+                int colLength = this.costMatrix.GetLength(1);
+
+                outputWriter.Write(',');
+                for (int j = 1; j < colLength; j++)
+                {
+                    outputWriter.Write(',');
+                    outputWriter.Write(seq2chars[j - 1]);
+                }
+                outputWriter.WriteLine();
+
+                for (int i = 0; i < rowLength; i++)
+                {
+                    bool bFirst = true;
+                    for (int j = 0; j < colLength; j++)
+                    {
+                        if (!bFirst)
+                        {
+                            outputWriter.Write(',');
+                        }
+                        else
+                        {
+                            bFirst = false;
+                            if (i == 0)
+                            {
+                                outputWriter.Write(',');
+                            }
+                            else
+                            {
+                                outputWriter.Write(seq1chars[i - 1]);
+                                outputWriter.Write(',');
+                            }
+
+
+                        }
+
+                        outputWriter.Write(this.costMatrix[i, j].Cost);
+                    }
+                    outputWriter.WriteLine();
+                }
+            }
+        }
         private IAlignmentResult Trace(int firstSequenceEnd, int secondSequenceEnd)
         {
             int firstSequenceStart = firstSequenceEnd;
             int secondSequenceStart = secondSequenceEnd;
 
-            CostFunction cost = this.costMatrix[firstSequenceStart + 1, secondSequenceStart + 1];
+            CostFunction cost = this.costMatrix[firstSequenceStart, secondSequenceStart];
 
             int highestCost = cost.Cost;
 
@@ -107,23 +153,23 @@ namespace SequenceAligner
                 switch (cost.Trace)
                 {
                     case TraceBack.Diagonal:
-                        alignedFirstSequence.Append(seq1chars[firstSequenceStart]);
+                        alignedFirstSequence.Append(seq1chars[firstSequenceStart - 1]);
                         firstSequenceStart--;
-                        alignedSecondSequence.Append(seq2chars[secondSequenceStart]);
+                        alignedSecondSequence.Append(seq2chars[secondSequenceStart - 1]);
                         secondSequenceStart--;
-                        cost = this.costMatrix[firstSequenceStart + 1, secondSequenceStart + 1];
+                        cost = this.costMatrix[firstSequenceStart, secondSequenceStart];
                         break;
                     case TraceBack.Left:
                         alignedFirstSequence.Append('-');
-                        alignedSecondSequence.Append(seq2chars[secondSequenceStart]);
+                        alignedSecondSequence.Append(seq2chars[secondSequenceStart - 1]);
                         secondSequenceStart--;
-                        cost = this.costMatrix[firstSequenceStart + 1, secondSequenceStart + 1];
+                        cost = this.costMatrix[firstSequenceStart, secondSequenceStart];
                         break;
                     case TraceBack.Up:
-                        alignedFirstSequence.Append(seq1chars[firstSequenceStart]);
+                        alignedFirstSequence.Append(seq1chars[firstSequenceStart - 1]);
                         firstSequenceStart--;
                         alignedSecondSequence.Append('-');
-                        cost = this.costMatrix[firstSequenceStart + 1, secondSequenceStart + 1];
+                        cost = this.costMatrix[firstSequenceStart, secondSequenceStart];
                         break;
                     default:
                         throw new Exception("Unexpected direction");
@@ -132,12 +178,13 @@ namespace SequenceAligner
 
             return new LocalAlignmentResult(
                     highestCost,
-                    firstSequenceStart,
+                    firstSequenceStart + 1,
                     firstSequenceEnd,
-                    secondSequenceStart,
+                    secondSequenceStart + 1,
                     secondSequenceEnd,
                     alignedFirstSequence.ToString().Reverse(),
-                    alignedSecondSequence.ToString().Reverse()
+                    alignedSecondSequence.ToString().Reverse(),
+                    this.scoreProvider
                     );
         }
 
@@ -186,6 +233,7 @@ namespace SequenceAligner
         {
             private string alignedFirstSequence;
             private string alignedSecondSequence;
+            private IScoreProvider scoreProvider;
 
             public LocalAlignmentResult(
                 int score,
@@ -194,7 +242,8 @@ namespace SequenceAligner
                 int secondSequenceStart,
                 int secondSequenceEnd,
                 string alignedFirstSequence,
-                string alignedSecondSequence
+                string alignedSecondSequence,
+                IScoreProvider scoreProvider
                 )
             {
                 this.Score = score;
@@ -204,6 +253,7 @@ namespace SequenceAligner
                 this.SecondSequenceEnd = secondSequenceEnd;
                 this.alignedFirstSequence = alignedFirstSequence;
                 this.alignedSecondSequence = alignedSecondSequence;
+                this.scoreProvider = scoreProvider;
             }
 
             public int FirstSequenceStart { get; private set; }
@@ -218,8 +268,113 @@ namespace SequenceAligner
 
             public void PrintAlignment(int blockLength)
             {
-                Console.WriteLine(this.alignedFirstSequence);
-                Console.WriteLine(this.alignedSecondSequence);
+                if (this.scoreProvider != null)
+                {
+                    if (blockLength <= 0)
+                    {
+                        throw new Exception("Block length should be positive");
+                    }
+
+                    var seq1array = this.alignedFirstSequence.ToCharArray();
+                    var seq2array = this.alignedSecondSequence.ToCharArray();
+
+                    StringBuilder firstRow = new StringBuilder();
+                    StringBuilder secondRow = new StringBuilder();
+                    StringBuilder thirdRow = new StringBuilder();
+
+                    int index = 0;
+                    int firstSeqIndex = this.FirstSequenceStart;
+                    int secondSeqIndex = this.SecondSequenceStart;
+
+                    // Match the blanks     
+                    Tuple<string, string, string> t = this.GetIndexStrings(firstSeqIndex, secondSeqIndex);
+                    firstRow.Append(t.Item1);
+                    secondRow.Append(t.Item2);
+                    thirdRow.Append(t.Item3);
+
+                    for (int i = 0; i < seq1array.Length; i++)
+                    {
+                        if (index >= blockLength)
+                        {
+                            index = 0;
+
+                            Console.WriteLine(firstRow.ToString());
+                            Console.WriteLine(secondRow.ToString());
+                            Console.WriteLine(thirdRow.ToString());
+                            Console.WriteLine();
+
+                            firstRow.Clear();
+                            secondRow.Clear();
+                            thirdRow.Clear();
+
+                            // Match the blanks     
+                            t = this.GetIndexStrings(firstSeqIndex, secondSeqIndex);
+                            firstRow.Append(t.Item1);
+                            secondRow.Append(t.Item2);
+                            thirdRow.Append(t.Item3);
+                        }
+
+                        firstRow.Append(seq1array[i]);
+                        thirdRow.Append(seq2array[i]);
+
+
+                        if (seq1array[i] != '-')
+                        {
+                            firstSeqIndex++;
+                        }
+
+                        if (seq2array[i] != '-')
+                        {
+                            secondSeqIndex++;
+                        }
+
+                        if (seq1array[i] == seq2array[i])
+                        {
+                            secondRow.Append(seq1array[i]);
+                        }
+                        else
+                        {
+                            if (seq1array[i] == '-' || seq2array[i] == '-')
+                            {
+                                secondRow.Append(" ");
+                            }
+                            else if (this.scoreProvider.GetScore(seq1array[i], seq2array[i]) > 0)
+                            {
+                                secondRow.Append("+");
+                            }
+                            else
+                            {
+                                secondRow.Append(" ");
+                            }
+                        }
+
+                        index++;
+                    }
+
+                    if (firstRow.Length > 0)
+                    {
+                        Console.WriteLine(firstRow.ToString());
+                        Console.WriteLine(secondRow.ToString());
+                        Console.WriteLine(thirdRow.ToString());
+                        Console.WriteLine();
+                    }
+                }
+                else
+                {
+                    throw new Exception("Traceback should be enabled to print alignment");
+                }
+            }
+
+            private Tuple<string, string, string> GetIndexStrings(int firstSeqIndex, int secondSeqIndex)
+            {
+                int fL = firstSeqIndex.ToString().Length;
+                int sL = secondSeqIndex.ToString().Length;
+                int maxL = Math.Max(fL, sL);
+                return Tuple.Create(
+                    string.Concat(new String(' ', maxL - fL), firstSeqIndex.ToString(), " "),
+                    new String(' ', maxL + 1),
+                    string.Concat(new String(' ', maxL - sL), secondSeqIndex.ToString(), " ")
+                    );
             }
         }
     }

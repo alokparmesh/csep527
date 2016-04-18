@@ -15,17 +15,19 @@ namespace SequenceAligner
     public class SubstitutionScoreProvider : IScoreProvider
     {
         public const string BLOSUM62 = "BLOSUM62";
-        private const string BLOSUM62FILE = "BLOSUM62.txt";
+        public const string BLOSUM50 = "BLOSUM50";
 
+        private string scoreType;
         private Dictionary<char, int> positionDictionary;
         private int[,] costMatrix;
         public SubstitutionScoreProvider(string scoreType)
         {
-            if (!BLOSUM62.Equals(scoreType))
+            if (!BLOSUM62.Equals(scoreType) && !BLOSUM50.Equals(scoreType))
             {
                 throw new Exception("Unsupported substitution score type requested");
             }
 
+            this.scoreType = scoreType;
             Init();
         }
 
@@ -53,9 +55,10 @@ namespace SequenceAligner
         {
             this.positionDictionary = new Dictionary<char, int>();
             bool headerRow = true;
-            if (File.Exists(BLOSUM62FILE))
+            string fileName = string.Format("{0}.txt", scoreType);
+            if (File.Exists(fileName))
             {
-                var sr = new StreamReader(BLOSUM62FILE);
+                var sr = new StreamReader(fileName);
                 while (!sr.EndOfStream)
                 {
                     string s = sr.ReadLine();
@@ -91,7 +94,7 @@ namespace SequenceAligner
             }
             else
             {
-                throw new Exception(string.Format("Missing file {0}", BLOSUM62FILE));
+                throw new Exception(string.Format("Missing file {0}", fileName));
             }
         }
     }

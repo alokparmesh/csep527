@@ -12,10 +12,10 @@ namespace SequenceAligner
         void PrintAlignment(int blockLength);
     }
 
-    
+
     public interface ISequenceAligner
     {
         // Align and 
-        IAlignmentResult Align(Sequence seq1, Sequence seq2);
+        IAlignmentResult Align(Sequence seq1, Sequence seq2, bool traceBack);
     }
 }

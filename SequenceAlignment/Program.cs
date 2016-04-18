@@ -48,11 +48,24 @@ namespace SequenceAligner
                     throw new Exception("Missing sequence or accession");
                 }
 
-                IScoreProvider subProvider = new SubstitutionScoreProvider(SubstitutionScoreProvider.BLOSUM62);
-                LocalAligner aligner = new LocalAligner(subProvider, options.GapInitiationCost, true);
-                IAlignmentResult result = aligner.Align(sequence1, sequence2);
+                IScoreProvider subProvider = new SubstitutionScoreProvider(options.ScoreType);
+                LocalAligner aligner = new LocalAligner(subProvider, options.GapInitiationCost);
+                IAlignmentResult result = aligner.Align(sequence1, sequence2, true);
+                Console.WriteLine(string.Format("Optimal Score : {0}", result.Score));
+                Console.WriteLine("Alignment :");
                 result.PrintAlignment(60);
-                Console.WriteLine(result.Score);
+
+                if (options.Full)
+                {
+                    aligner.OutpuCostMatrix();
+                }
+
+                if(options.PValue)
+                {
+                    EmpiricalPvalueCalculator emp = new EmpiricalPvalueCalculator(aligner);
+                    var pValue = emp.CalculatePValue(sequence1, sequence2, result.Score, 1000);
+                    Console.WriteLine(pValue);
+                }
             }
         }
 

@@ -59,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EmpiricalPvalueCalculator.cs" />
     <Compile Include="ISequenceAlignment .cs" />
     <Compile Include="LocalAligner.cs" />
     <Compile Include="Program.cs" />
@@ -104,6 +105,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="BLOSUM50.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="BLOSUM62.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
