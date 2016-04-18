@@ -15,13 +15,11 @@ namespace SequenceAligner
 
     public class SequenceAlignerOption
     {
+        [OptionList("sequences", Separator = ',', HelpText = "first sequence's accession")]
+        public List<string> Sequences { get; set; }
 
-        [Option("accession1", DefaultValue = "P68871", HelpText = "first sequence's accession")]
-        public string Accession1 { get; set; }
-
-
-        [Option("accession2", DefaultValue = "Q14SN0", HelpText = "second sequence's accession")]
-        public string Accession2 { get; set; }
+        [OptionList("accessions", Separator =',', HelpText = "first sequence's accession")]
+        public List<string> Accessions { get; set; }
 
         [Option("alignmentType", DefaultValue = AlignmentType.Local, HelpText = "alignment type local or global")]
         public AlignmentType AlignmentType { get; set; }

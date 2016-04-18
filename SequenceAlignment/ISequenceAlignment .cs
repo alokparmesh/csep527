@@ -8,23 +8,12 @@ namespace SequenceAligner
 {
     public interface IAlignmentResult
     {
-        int Score { get; set; }
-        void PrintAlignment();
+        int Score { get; }
+        void PrintAlignment(int blockLength);
     }
 
-    public class Sequence
-    {
-        public Sequence(string accession, string seq)
-        {
-            this.Accession = accession;
-            this.SequenceString = seq;
-        }
-
-        public string Accession { get; private set; }
-
-        public string SequenceString { get; private set; }
-    }
-    public interface ISequenceAlignment
+    
+    public interface ISequenceAligner
     {
         // Align and 
         IAlignmentResult Align(Sequence seq1, Sequence seq2);
