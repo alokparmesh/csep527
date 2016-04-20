@@ -51,8 +51,9 @@ namespace SequenceAligner
                 IScoreProvider subProvider = new SubstitutionScoreProvider(options.ScoreType);
                 LocalAligner aligner = new LocalAligner(subProvider, options.GapInitiationCost);
                 IAlignmentResult result = aligner.Align(sequence1, sequence2, true);
-                Console.WriteLine(string.Format("Optimal Score : {0}", result.Score));
-                Console.WriteLine("Alignment :");
+                Console.WriteLine(string.Format("Comparing {0} to {1}",sequence1.Accession,sequence2.Accession));
+                Console.WriteLine(string.Format("Optimal Score: {0}", result.Score));
+                Console.WriteLine("Alignment:");
                 result.PrintAlignment(60);
 
                 if (options.Full)
@@ -64,7 +65,7 @@ namespace SequenceAligner
                 {
                     EmpiricalPvalueCalculator emp = new EmpiricalPvalueCalculator(aligner);
                     var pValue = emp.CalculatePValue(sequence1, sequence2, result.Score, 1000);
-                    Console.WriteLine(pValue);
+                    Console.WriteLine(string.Format("p-value: {0}", pValue));
                 }
             }
         }

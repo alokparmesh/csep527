@@ -33,7 +33,7 @@ namespace SequenceAligner
         [Option("gapExtensionCost", DefaultValue = -4, HelpText = "gap extension cost")]
         public int GapExtensionCost { get; set; }
 
-        [Option("pValue", DefaultValue = true, HelpText = "calculate p-value")]
+        [Option("pValue", DefaultValue = false, HelpText = "calculate p-value")]
         public bool PValue { get; set; }
 
         [Option("full", DefaultValue = false, HelpText = "print full matrix")]
