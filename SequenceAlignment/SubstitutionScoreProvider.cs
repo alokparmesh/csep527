@@ -7,11 +7,18 @@ using System.Threading.Tasks;
 
 namespace SequenceAligner
 {
+    /// <summary>
+    /// Substitution score interface
+    /// </summary>
     public interface IScoreProvider
     {
         int GetScore(char aminoAcid1, char aminoAcid2);
     }
 
+    /// <summary>
+    /// Get the substitution score by reading text file which contains the score in matrix format
+    /// with # as comments
+    /// </summary>
     public class SubstitutionScoreProvider : IScoreProvider
     {
         public const string BLOSUM62 = "BLOSUM62";

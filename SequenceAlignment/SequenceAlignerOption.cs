@@ -7,12 +7,18 @@ using CommandLine;
 
 namespace SequenceAligner
 {
+    /// <summary>
+    /// Type of alignment
+    /// </summary>
     public enum AlignmentType
     {
         Local,
         Global
     }
 
+    /// <summary>
+    /// Various options to alignment
+    /// </summary>
     public class SequenceAlignerOption
     {
         [OptionList("sequences", Separator = ',', HelpText = "two sequences for comparision")]
@@ -27,11 +33,8 @@ namespace SequenceAligner
         [Option("scoretype", DefaultValue = "BLOSUM62", HelpText = "blosum score type")]
         public string ScoreType { get; set; }
 
-        [Option("gapInitiationCost", DefaultValue = -4, HelpText = "gap initiation cost")]
-        public int GapInitiationCost { get; set; }
-
-        [Option("gapExtensionCost", DefaultValue = -4, HelpText = "gap extension cost")]
-        public int GapExtensionCost { get; set; }
+        [Option("gapCost", DefaultValue = -4, HelpText = "gap cost")]
+        public int GapCost { get; set; }
 
         [Option("pValue", DefaultValue = false, HelpText = "calculate p-value")]
         public bool PValue { get; set; }
@@ -48,7 +51,7 @@ namespace SequenceAligner
         {
             var usage = new StringBuilder();
             usage.AppendLine("SequenceAligner.exe");
-            usage.AppendLine(@"--accession1=""P68871"" --accession2=""Q14SN0""");           
+            usage.AppendLine(@"--sequences=""deadly, ddgearlyk"" --alignmentType=Global --pValue --full");           
             return usage.ToString();
         }
     }

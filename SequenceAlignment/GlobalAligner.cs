@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 namespace SequenceAligner
 {
     /// <summary>
-    /// Local alignment implementation using Smith-Waterman local sequence alignment algorithm
+    /// Global alignment using Needleman-Wunsch alignment algorithm
     /// </summary>
-    public class LocalAligner : ISequenceAligner
+    public class GlobalAligner : ISequenceAligner
     {
         private IScoreProvider scoreProvider;
         private int gapCost;
@@ -18,7 +18,7 @@ namespace SequenceAligner
         private char[] seq1chars;
         private char[] seq2chars;
 
-        public LocalAligner(IScoreProvider scoreProvider, int gapCost)
+        public GlobalAligner(IScoreProvider scoreProvider, int gapCost)
         {
             this.scoreProvider = scoreProvider;
             this.gapCost = gapCost;
@@ -36,12 +36,12 @@ namespace SequenceAligner
 
             for (int i = 0; i < m + 1; i++)
             {
-                this.costMatrix[i, 0] = new CostFunction { MaxScore = 0, Trace = TraceBack.None };
+                this.costMatrix[i, 0] = new CostFunction { MaxScore = i * this.gapCost, Trace = TraceBack.Up };
             }
 
             for (int j = 0; j < n + 1; j++)
             {
-                this.costMatrix[0, j] = new CostFunction { MaxScore = 0, Trace = TraceBack.None };
+                this.costMatrix[0, j] = new CostFunction { MaxScore = j * this.gapCost, Trace = TraceBack.Left };
             }
 
             for (int i = 1; i < m + 1; i++)
@@ -52,40 +52,17 @@ namespace SequenceAligner
                 }
             }
 
-            int highestCost = 0;
-            int firstSequenceStart = -1;
-            int firstSequenceEnd = -1;
-            int secondSequenceStart = -1;
-            int secondSequenceEnd = -1;
             string alignedFirstSequence = string.Empty;
             string alignedSecondSequence = string.Empty;
 
-            for (int i = 0; i < m + 1; i++)
-            {
-                for (int j = 0; j < n + 1; j++)
-                {
-                    if (this.costMatrix[i, j].MaxScore > highestCost)
-                    {
-                        highestCost = this.costMatrix[i, j].MaxScore;
-                        firstSequenceEnd = i;
-                        secondSequenceEnd = j;
-                    }
-                }
-            }
-
             if (traceBack)
             {
-                return this.Trace(firstSequenceEnd, secondSequenceEnd);
+                return this.Trace();
             }
             else
             {
-
-                return new LocalAlignmentResult(
-                    highestCost,
-                    firstSequenceStart,
-                    firstSequenceEnd,
-                    secondSequenceStart,
-                    secondSequenceEnd,
+                return new GlobalAlignmentResult(
+                    this.costMatrix[m, n].MaxScore,
                     alignedFirstSequence,
                     alignedSecondSequence,
                     null
@@ -93,9 +70,7 @@ namespace SequenceAligner
             }
         }
 
-        public void OutpuCostMatrix(string fileName)
         {
-            using (var outputWriter = new StreamWriter(fileName))
             {
                 int rowLength = this.costMatrix.GetLength(0);
                 int colLength = this.costMatrix.GetLength(1);
@@ -141,15 +116,15 @@ namespace SequenceAligner
         }
 
         /// <summary>
-        /// Trace the result of alignment by following trace directions from the end
+        /// Trace the direction from end to beginning 
         /// </summary>
-        /// <param name="firstSequenceEnd"></param>
-        /// <param name="secondSequenceEnd"></param>
         /// <returns></returns>
-        private IAlignmentResult Trace(int firstSequenceEnd, int secondSequenceEnd)
+        private IAlignmentResult Trace()
         {
-            int firstSequenceStart = firstSequenceEnd;
-            int secondSequenceStart = secondSequenceEnd;
+            int rowLength = this.costMatrix.GetLength(0);
+            int colLength = this.costMatrix.GetLength(1);
+            int firstSequenceStart = rowLength - 1;
+            int secondSequenceStart = colLength - 1;
 
             CostFunction cost = this.costMatrix[firstSequenceStart, secondSequenceStart];
 
@@ -158,7 +133,7 @@ namespace SequenceAligner
             StringBuilder alignedFirstSequence = new StringBuilder();
             StringBuilder alignedSecondSequence = new StringBuilder();
 
-            while (cost.Trace != TraceBack.None)
+            while (!(firstSequenceStart == 0 && secondSequenceStart == 0))
             {
                 switch (cost.Trace)
                 {
@@ -186,12 +161,8 @@ namespace SequenceAligner
                 }
             }
 
-            return new LocalAlignmentResult(
+            return new GlobalAlignmentResult(
                     highestCost,
-                    firstSequenceStart + 1,
-                    firstSequenceEnd,
-                    secondSequenceStart + 1,
-                    secondSequenceEnd,
                     alignedFirstSequence.ToString().Reverse(),
                     alignedSecondSequence.ToString().Reverse(),
                     this.scoreProvider
@@ -200,11 +171,10 @@ namespace SequenceAligner
 
         private CostFunction GetCost(int i, int j)
         {
-            CostFunction cost = new CostFunction { MaxScore = 0, Trace = TraceBack.None };
+            CostFunction cost = new CostFunction { MaxScore = this.costMatrix[i - 1, j - 1].MaxScore + this.scoreProvider.GetScore(seq1chars[i - 1], seq2chars[j - 1]), Trace = TraceBack.Diagonal };
 
             CostFunction upCost = new CostFunction { MaxScore = this.costMatrix[i - 1, j].MaxScore + this.gapCost, Trace = TraceBack.Up };
             CostFunction leftCost = new CostFunction { MaxScore = this.costMatrix[i, j - 1].MaxScore + this.gapCost, Trace = TraceBack.Left };
-            CostFunction diagCost = new CostFunction { MaxScore = this.costMatrix[i - 1, j - 1].MaxScore + this.scoreProvider.GetScore(seq1chars[i - 1], seq2chars[j - 1]), Trace = TraceBack.Diagonal };
 
             if (upCost.MaxScore > cost.MaxScore)
             {
@@ -216,11 +186,6 @@ namespace SequenceAligner
                 cost = leftCost;
             }
 
-            if (diagCost.MaxScore > cost.MaxScore)
-            {
-                cost = diagCost;
-            }
-
             return cost;
         }
 
@@ -228,8 +193,7 @@ namespace SequenceAligner
         {
             Diagonal,
             Up,
-            Left,
-            None
+            Left
         }
 
         private class CostFunction
@@ -239,40 +203,24 @@ namespace SequenceAligner
             public TraceBack Trace { get; set; }
         }
 
-        private class LocalAlignmentResult : IAlignmentResult
+        private class GlobalAlignmentResult : IAlignmentResult
         {
             private string alignedFirstSequence;
             private string alignedSecondSequence;
             private IScoreProvider scoreProvider;
 
-            public LocalAlignmentResult(
+            public GlobalAlignmentResult(
                 int score,
-                int firstSequenceStart,
-                int firstSequenceEnd,
-                int secondSequenceStart,
-                int secondSequenceEnd,
                 string alignedFirstSequence,
                 string alignedSecondSequence,
                 IScoreProvider scoreProvider
                 )
             {
                 this.Score = score;
-                this.FirstSequenceStart = firstSequenceStart;
-                this.FirstSequenceEnd = firstSequenceEnd;
-                this.SecondSequenceStart = secondSequenceStart;
-                this.SecondSequenceEnd = secondSequenceEnd;
                 this.alignedFirstSequence = alignedFirstSequence;
                 this.alignedSecondSequence = alignedSecondSequence;
                 this.scoreProvider = scoreProvider;
             }
-
-            public int FirstSequenceStart { get; private set; }
-
-            public int FirstSequenceEnd { get; private set; }
-
-            public int SecondSequenceStart { get; private set; }
-
-            public int SecondSequenceEnd { get; private set; }
 
             public int Score { get; private set; }
 
@@ -293,8 +241,8 @@ namespace SequenceAligner
                     StringBuilder thirdRow = new StringBuilder();
 
                     int index = 0;
-                    int firstSeqIndex = this.FirstSequenceStart;
-                    int secondSeqIndex = this.SecondSequenceStart;
+                    int firstSeqIndex = 1;
+                    int secondSeqIndex = 1;
 
                     // Match the blanks     
                     Tuple<string, string, string> t = StringExtensions.GetIndexStrings(firstSeqIndex, secondSeqIndex);

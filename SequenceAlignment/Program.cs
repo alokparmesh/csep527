@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,10 +7,21 @@ using System.Threading.Tasks;
 
 namespace SequenceAligner
 {
-    class Program
+    /// <summary>
+    /// Main program which checks options and sets up alignment calculation
+    /// </summary>
+    public class Program
     {
+        public static int PrintBlockLength = 60;
+        public static int Permutations = 1000;
+        public static string CostOutputFile = "costMatrix.csv";
+
         static void Main(string[] args)
         {
+            int.TryParse(ConfigurationManager.AppSettings["printBlockLength"],out PrintBlockLength);
+            int.TryParse(ConfigurationManager.AppSettings["permutations"], out Permutations);
+            CostOutputFile = ConfigurationManager.AppSettings["costOutputFile"];
+
             SequenceAlignerOption options = new SequenceAlignerOption();
 
             if (CommandLine.Parser.Default.ParseArguments(args, options))
@@ -49,22 +61,32 @@ namespace SequenceAligner
                 }
 
                 IScoreProvider subProvider = new SubstitutionScoreProvider(options.ScoreType);
-                LocalAligner aligner = new LocalAligner(subProvider, options.GapInitiationCost);
+
+                ISequenceAligner aligner;
+                if (options.AlignmentType == AlignmentType.Local)
+                {
+                    aligner = new LocalAligner(subProvider, options.GapCost);
+                }
+                else
+                {
+                    aligner = new GlobalAligner(subProvider, options.GapCost);
+                }
+
                 IAlignmentResult result = aligner.Align(sequence1, sequence2, true);
                 Console.WriteLine(string.Format("Comparing {0} to {1}",sequence1.Accession,sequence2.Accession));
                 Console.WriteLine(string.Format("Optimal Score: {0}", result.Score));
                 Console.WriteLine("Alignment:");
-                result.PrintAlignment(60);
+                result.PrintAlignment(Program.PrintBlockLength);
 
                 if (options.Full)
                 {
-                    aligner.OutpuCostMatrix();
+                    aligner.OutpuCostMatrix(Program.CostOutputFile);
                 }
 
                 if(options.PValue)
                 {
                     EmpiricalPvalueCalculator emp = new EmpiricalPvalueCalculator(aligner);
-                    var pValue = emp.CalculatePValue(sequence1, sequence2, result.Score, 1000);
+                    var pValue = emp.CalculatePValue(sequence1, sequence2, result.Score, Program.Permutations);
                     Console.WriteLine(string.Format("p-value: {0}", pValue));
                 }
             }

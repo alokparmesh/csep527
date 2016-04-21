@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace SequenceAligner
 {
+    /// <summary>
+    /// Interface for result of alignment
+    /// </summary>
     public interface IAlignmentResult
     {
         int Score { get; }
@@ -13,9 +16,16 @@ namespace SequenceAligner
     }
 
 
+    /// <summary>
+    /// Interface for 
+    /// </summary>
     public interface ISequenceAligner
     {
-        // Align and 
+        // Align sequences 
         IAlignmentResult Align(Sequence seq1, Sequence seq2, bool traceBack);
+
+        /// <summary>
+        /// Output cost matrix to file
+        /// </summary>
     }
 }

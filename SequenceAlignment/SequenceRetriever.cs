@@ -9,9 +9,19 @@ using System.IO;
 
 namespace SequenceAligner
 {
+    /// <summary>
+    /// Checks for accession in local directory otherwise tries to download from uniprot site
+    /// </summary>
     public static class SequenceRetriever
     {
         private const string folderPath = "Sequences";
+
+        /// <summary>
+        /// Get the fasta file and read the sequence from file
+        /// </summary>
+        /// <param name="accession"></param>
+        /// <param name="sequence"></param>
+        /// <returns></returns>
         public static bool TryRetrieveSequence(string accession, out string sequence)
         {
             sequence = null;

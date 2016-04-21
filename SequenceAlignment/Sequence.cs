@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace SequenceAligner
 {
+    /// <summary>
+    /// Sequence & ID structure
+    /// </summary>
     public class Sequence
     {
         public Sequence(string accession, string seq)

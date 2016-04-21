@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace SequenceAligner
 {
+    /// <summary>
+    /// Calculate empirical pvalue by permuting and counting sequences which on alignment 
+    /// result in equal or better than given score  
+    /// </summary>
     public class EmpiricalPvalueCalculator
     {
         private static Random random = new Random();
