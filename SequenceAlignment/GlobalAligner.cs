@@ -70,7 +70,9 @@ namespace SequenceAligner
             }
         }
 
+        public void OutpuCostMatrix(string fileName)
         {
+            using (var outputWriter = new StreamWriter(fileName))
             {
                 int rowLength = this.costMatrix.GetLength(0);
                 int colLength = this.costMatrix.GetLength(1);

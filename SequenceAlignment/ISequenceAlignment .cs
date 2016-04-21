@@ -27,5 +27,6 @@ namespace SequenceAligner
         /// <summary>
         /// Output cost matrix to file
         /// </summary>
+        void OutpuCostMatrix(string fileName);
     }
 }
