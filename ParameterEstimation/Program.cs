@@ -35,13 +35,26 @@ namespace ParameterEstimation
                 double average = numbers.Average();
                 double sumOfSquares = numbers.Select(val => (val - average) * (val - average)).Sum();
                 double sd = Math.Sqrt(sumOfSquares / (numbers.Count - 1));
-                Console.WriteLine(average.ToString("#.00000"));
-                Console.WriteLine(sd.ToString("#.00000"));
+                double logLikelihood = GetLogLikelihood(numbers, average, sd);
+                double bic = 2 * logLikelihood - 2 * Math.Log(numbers.Count);
 
-                double product = GetLikelihood(numbers, average, sd);
+                Console.Write("mu");
+                Console.Write("\t");
+                Console.Write("sd");
+                Console.Write("\t");
+                Console.Write("LogLik");
+                Console.Write("\t\t");
+                Console.Write("BIC");
+                Console.WriteLine();
 
-                Console.WriteLine(Math.Log(product).ToString("#.00000"));
-                Console.WriteLine(2 *Math.Log(product) - 2 * Math.Log(numbers.Count));
+                Console.Write(average.ToString("#.0000"));
+                Console.Write("\t");
+                Console.Write(sd.ToString("#.0000"));
+                Console.Write("\t");
+                Console.Write(logLikelihood.ToString("#.0000"));
+                Console.Write("\t");
+                Console.Write(bic.ToString("#.0000"));
+                Console.WriteLine();
             }
             else
             {
@@ -50,27 +63,20 @@ namespace ParameterEstimation
             }
         }
 
-        private static double GetLikelihood(List<double> numbers, double average, double sd)
+        private static double GetLogLikelihood(List<double> numbers, double average, double sd)
         {
-            double product = 1.0;
+            double likelihood = 1.0;
 
             foreach (double number in numbers)
             {
-                double Likelihood = GuassianLikelihood(number, average, sd);
-                product *= Likelihood;
-                
-                /*
-                double Likelihood1 = GuassianLikelihood(number, 21, 1) / 3;
-                double Likelihood2 = GuassianLikelihood(number, 46, 1) / 3;
-                double Likelihood3 = GuassianLikelihood(number, 55, 1) / 3;
-                product *= (Likelihood1+Likelihood2+Likelihood3);
-                */
+                double density = GuassianDensity(number, average, sd);
+                likelihood *= density;
             }
 
-            return product;
+            return Math.Log(likelihood);
         }
 
-        private static double GuassianLikelihood(double number, double average, double sd)
+        private static double GuassianDensity(double number, double average, double sd)
         {
             double d = (number - average) / sd;
             double exp = Math.Exp(-1.0 * (d * d) / 2);
