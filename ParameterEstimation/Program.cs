@@ -11,7 +11,7 @@ namespace ParameterEstimation
     {
         static void Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length != 2)
             {
                 throw new ArgumentException("Only one parameter expected");
             }
@@ -25,7 +25,7 @@ namespace ParameterEstimation
 
             List<double> numbers = GetNuberList(fileName);
 
-            PrintEstimation(numbers, 2);
+            PrintEstimation(numbers, int.Parse(args[1]));
         }
 
         private static void PrintEstimation(List<double> numbers, int numMixtures)
@@ -41,7 +41,7 @@ namespace ParameterEstimation
                 double product = GetLikelihood(numbers, average, sd);
 
                 Console.WriteLine(Math.Log(product).ToString("#.00000"));
-                Console.WriteLine(2 *Math.Log(product) - 1 * Math.Log(numbers.Count));
+                Console.WriteLine(2 *Math.Log(product) - 2 * Math.Log(numbers.Count));
             }
             else
             {
