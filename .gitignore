@@ -49,3 +49,7 @@ SequenceAlignment/bin
 SequenceAlignment/obj
 SequenceAlignment/packages
 SequenceAlignment/.vs
+ParameterEstimation/bin
+ParameterEstimation/obj
+ParameterEstimation/packages
+ParameterEstimation/.vs
