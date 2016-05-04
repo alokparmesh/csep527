@@ -35,11 +35,7 @@ namespace ParameterEstimation
         }
 
         private void InitMu()
-        {            
-           //this.mu[0] = -20;
-           //this.mu[1] = 6;
-           //this.mu[2] = 55;           
-
+        {                   
             double max = this.numbers.Max();
             double min = this.numbers.Min();
 
@@ -100,7 +96,7 @@ namespace ParameterEstimation
             {
                 for (int j = 0; j < k; j++)
                 {
-                    Console.Write(string.Format("mu{0}",j));
+                    Console.Write(string.Format("mu{0}",j+1));
                     Console.Write("\t");                   
                 }
                 Console.Write("LogLik");
@@ -134,7 +130,7 @@ namespace ParameterEstimation
             }
             Console.WriteLine();
 
-            for (int i = 0; i < Math.Min(n, 25); i++)
+            for (int i = 0; i < Math.Min(n, Program.PrintprobabilitiesNRow); i++)
             {
                 Console.Write(string.Format("[{0},]", i + 1));
                 Console.Write("\t");

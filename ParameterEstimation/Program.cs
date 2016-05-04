@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -7,25 +8,30 @@ using System.Threading.Tasks;
 
 namespace ParameterEstimation
 {
-    class Program
+    public class Program
     {
+        public static int PrintprobabilitiesNRow = 25;
+
         static void Main(string[] args)
         {
-            if (args.Length != 2)
+            int.TryParse(ConfigurationManager.AppSettings["printprobabilitiesNRow"], out PrintprobabilitiesNRow);
+
+            ParameterEstimationOption options = new ParameterEstimationOption();
+
+            if (CommandLine.Parser.Default.ParseArguments(args, options))
             {
-                throw new ArgumentException("Only one parameter expected");
+                string fileName = options.InputFile;
+
+                if (!File.Exists(fileName))
+                {
+                    throw new ArgumentException(string.Format("File not found {0}", fileName));
+                }
+
+                List<double> numbers = GetNuberList(fileName);
+                Console.WriteLine("Number of mixture (k) = {0}",options.MixtureCount);
+                PrintEstimation(numbers, options.MixtureCount);
+                Console.WriteLine("----------------------------------------------------------------------");
             }
-
-            string fileName = args[0];
-
-            if (!File.Exists(fileName))
-            {
-                throw new ArgumentException(string.Format("File not found {0}", fileName));
-            }
-
-            List<double> numbers = GetNuberList(fileName);
-
-            PrintEstimation(numbers, int.Parse(args[1]));
         }
 
         private static void PrintEstimation(List<double> numbers, int numMixtures)

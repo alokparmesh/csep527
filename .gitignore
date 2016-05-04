@@ -53,3 +53,5 @@ ParameterEstimation/bin
 ParameterEstimation/obj
 ParameterEstimation/packages
 ParameterEstimation/.vs
+*.pdf
+*.docx
