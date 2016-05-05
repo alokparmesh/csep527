@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace ParameterEstimation
 {
+    /// <summary>
+    /// EM algorithm
+    /// </summary>
     public class EMAlgorithm
     {
         private const double sd = 1.0;
@@ -34,6 +37,9 @@ namespace ParameterEstimation
             this.z = new double[n, k];
         }
 
+        /// <summary>
+        /// Initialize mu
+        /// </summary>
         private void InitMu()
         {                   
             double max = this.numbers.Max();
@@ -53,6 +59,9 @@ namespace ParameterEstimation
             this.PrintMus(true);
         }
 
+        /// <summary>
+        /// Main function which used to execute operation
+        /// </summary>
         public void Calculate()
         {
             this.InitMu();
@@ -75,6 +84,10 @@ namespace ParameterEstimation
             this.PrintProbabilities();
         }
 
+        /// <summary>
+        /// Termination check
+        /// </summary>
+        /// <returns></returns>
         private bool ShouldContinue()
         {
             bool progress = true;
@@ -90,6 +103,10 @@ namespace ParameterEstimation
             return progress;
         }
 
+        /// <summary>
+        /// Print mus
+        /// </summary>
+        /// <param name="header"></param>
         private void PrintMus(bool header = false)
         {
             if(header)
@@ -118,6 +135,9 @@ namespace ParameterEstimation
             Console.WriteLine();
         }
 
+        /// <summary>
+        /// Print Probabilities class
+        /// </summary>
         private void PrintProbabilities()
         {
             Console.Write("\t");
@@ -148,6 +168,9 @@ namespace ParameterEstimation
             }
         }
 
+        /// <summary>
+        /// E Step
+        /// </summary>
         private void EStep()
         {
             for (int i = 0; i < n; i++)
@@ -171,6 +194,9 @@ namespace ParameterEstimation
             }
         }
 
+        /// <summary>
+        /// M step
+        /// </summary>
         private void MStep()
         {
             for (int j = 0; j < k; j++)
@@ -191,6 +217,10 @@ namespace ParameterEstimation
             }
         }
 
+        /// <summary>
+        /// Get log likelihood
+        /// </summary>
+        /// <returns></returns>
         private double GetLogLikelihood()
         {
             double likelihood = 1.0;
@@ -211,11 +241,22 @@ namespace ParameterEstimation
             return Math.Log(likelihood);
         }
 
+        /// <summary>
+        /// Get BIC score
+        /// </summary>
+        /// <returns></returns>
         private double GetBIC()
         {
             return 2 * this.logLikelihood - this.k * Math.Log(this.n);
         }
 
+        /// <summary>
+        /// Get density
+        /// </summary>
+        /// <param name="number"></param>
+        /// <param name="average"></param>
+        /// <param name="sd"></param>
+        /// <returns></returns>
         private static double GuassianDensity(double number, double average, double sd)
         {
             double d = (number - average) / sd;

@@ -8,7 +8,7 @@ using CommandLine;
 namespace ParameterEstimation
 {
     /// <summary>
-    /// Various options to alignment
+    /// Various options to Parameter estimation
     /// </summary>
     public class ParameterEstimationOption
     {

@@ -36,6 +36,7 @@ namespace ParameterEstimation
 
         private static void PrintEstimation(List<double> numbers, int numMixtures)
         {
+            // For one mixture case directly estimate the mu and sd without EM
             if (numMixtures == 1)
             {
                 double average = numbers.Average();
@@ -64,11 +65,19 @@ namespace ParameterEstimation
             }
             else
             {
+                // Use EM to figure out mu
                 EMAlgorithm algo = new EMAlgorithm(numbers, numMixtures);
                 algo.Calculate();
             }
         }
 
+        /// <summary>
+        /// For a given set of numbers and mu,sd calculate log likelihood
+        /// </summary>
+        /// <param name="numbers">list of numbers</param>
+        /// <param name="average">mu</param>
+        /// <param name="sd">standard deviation</param>
+        /// <returns>log likelihood</returns>
         private static double GetLogLikelihood(List<double> numbers, double average, double sd)
         {
             double likelihood = 1.0;
@@ -82,6 +91,13 @@ namespace ParameterEstimation
             return Math.Log(likelihood);
         }
 
+        /// <summary>
+        /// For a given number, mu and sd calculate density
+        /// </summary>
+        /// <param name="number"></param>
+        /// <param name="average"></param>
+        /// <param name="sd"></param>
+        /// <returns></returns>
         private static double GuassianDensity(double number, double average, double sd)
         {
             double d = (number - average) / sd;
@@ -89,6 +105,12 @@ namespace ParameterEstimation
             return exp / (sd * Math.Sqrt(2 * Math.PI));
         }
 
+        /// <summary>
+        /// Read a list of white space seperated numbers
+        /// from a file
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         private static List<double> GetNuberList(string fileName)
         {
             List<double> numbers = new List<double>();
