@@ -50,8 +50,8 @@ namespace Viterbi
             //algo.Estimate("GCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGC");          
             algo.Estimate(seq);
 
-            Console.WriteLine(algo.TraceBack());
-            //PrintCpGIsland(algo.TraceBack(), high);
+            //Console.WriteLine(algo.TraceBack());
+            PrintCpGIsland(algo.TraceBack(), high);
         }
 
         private static void PrintCpGIsland(string stateSequence, char state)
@@ -65,24 +65,31 @@ namespace Viterbi
                 {
                     if(cpgIslandStart > 0)
                     {
-                        cpgIslandStart = currentpos;
-                        cpgIslandLength = 1;
+                        cpgIslandLength++;
                     }
                     else
                     {
-                        cpgIslandLength++;
+                        cpgIslandStart = currentpos;
+                        cpgIslandLength = 1;                        
                     }
                 }
                 else
                 {
                     if (cpgIslandStart > 0)
                     {
-                        Console.WriteLine("Start {0}, Lenght {1}", cpgIslandStart, cpgIslandLength);
+                        Console.WriteLine("Start {0}, Length {1}", cpgIslandStart, cpgIslandLength);
                         cpgIslandStart = -1;
                         cpgIslandLength = 0;
                     }                    
                 }
                 currentpos++;
+            }
+
+            if (cpgIslandStart > 0)
+            {
+                Console.WriteLine("Start {0}, Length {1}", cpgIslandStart, cpgIslandLength);
+                cpgIslandStart = -1;
+                cpgIslandLength = 0;
             }
         }
 

@@ -59,7 +59,8 @@ namespace Viterbi
 
                     for (int j = 0; j < this.numHiddenStates; j++)
                     {
-                        double sequenceProbability = previousSequenceProbabilities[j] + Math.Log(this.TransitionProbabilities[j,k]) + Math.Log(this.EmissionProbabilities[k][currentEmission]);
+                        double sequenceProbability = previousSequenceProbabilities[j] 
+                            + Math.Log(this.TransitionProbabilities[j,k]) + Math.Log(this.EmissionProbabilities[k][currentEmission]);
 
                         if(sequenceProbability > maxSequenceProbability)
                         {
