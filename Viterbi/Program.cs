@@ -43,7 +43,7 @@ namespace Viterbi
             fairProbabilities.Add('6', 1.0/6.0);
             algo.EmissionProbabilities[1] = fairProbabilities;
 
-            Console.WriteLine(algo.TraceBack("316664"));
+            Console.WriteLine(algo.Estimate("316664"));
         }
     }
 }

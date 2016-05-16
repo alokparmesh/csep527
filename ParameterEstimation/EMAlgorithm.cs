@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,7 @@ namespace ParameterEstimation
         private double[] mu;
         private double[,] z;
         private double logLikelihood;
+        private double muChange;
         private double bic;
 
 
@@ -41,22 +43,62 @@ namespace ParameterEstimation
         /// Initialize mu
         /// </summary>
         private void InitMu()
-        {                   
+        {
+            if (ConfigurationManager.AppSettings["InitializationType"] == "Random")
+            {
+                this.RandomInit();
+            }
+            else
+            {
+                this.RangeInit();
+            }
+            this.logLikelihood = this.GetLogLikelihood();
+            this.bic = this.GetBIC();
+
+            this.PrintMus(true);
+        }
+
+        /// <summary>
+        /// Random intialization
+        /// </summary>
+        private void RandomInit()
+        {
+            HashSet<int> randomIndexes = new HashSet<int>();
+            Random r = new Random();
+
+            for (int i = 0; i < k; i++)
+            {
+                int randomIndex = -1;
+                while (true)
+                {
+                    randomIndex = r.Next(this.n);
+
+                    if(!randomIndexes.Contains(randomIndex))
+                    {
+                        randomIndexes.Add(randomIndex);
+                        break;
+                    }
+                }
+
+                this.mu[i] = this.numbers[randomIndex];
+            }
+        }
+
+        /// <summary>
+        /// Range based intialization
+        /// </summary>
+        private void RangeInit()
+        {
             double max = this.numbers.Max();
             double min = this.numbers.Min();
 
             double step = (max - min) / (k - 1);
 
             this.mu[0] = min;
-            for(int i = 1; i < k; i++)
+            for (int i = 1; i < k; i++)
             {
                 this.mu[i] = min + i * step;
             }
-          
-            this.logLikelihood = this.GetLogLikelihood();
-            this.bic = this.GetBIC();
-
-            this.PrintMus(true);
         }
 
         /// <summary>
@@ -90,16 +132,37 @@ namespace ParameterEstimation
         /// <returns></returns>
         private bool ShouldContinue()
         {
+            double newlikelihood = this.GetLogLikelihood();
+
+            bool progress = ConfigurationManager.AppSettings["InitializationType"] == "Likelihood" ?
+                IsLikelihoodDifferent(newlikelihood) : IsMuDifferent();
+
+            this.logLikelihood = newlikelihood;
+            this.bic = this.GetBIC();
+            return progress;
+        }
+
+        private bool IsLikelihoodDifferent(double newlikelihood)
+        {
             bool progress = true;
 
-            double newlikelihood = this.GetLogLikelihood();
             if (Math.Abs(this.logLikelihood - newlikelihood) < EMAlgorithm.epsilon)
             {
                 progress = false;
             }
 
-            this.logLikelihood = newlikelihood;
-            this.bic = this.GetBIC();
+            return progress;
+        }
+
+        private bool IsMuDifferent()
+        {
+            bool progress = true;
+
+            if (Math.Abs(this.muChange) < EMAlgorithm.epsilon)
+            {
+                progress = false;
+            }
+
             return progress;
         }
 
@@ -199,6 +262,8 @@ namespace ParameterEstimation
         /// </summary>
         private void MStep()
         {
+            this.muChange = 0.0;
+
             for (int j = 0; j < k; j++)
             {
                 double exi = 0.0;
@@ -212,7 +277,9 @@ namespace ParameterEstimation
 
                 if (e > 0)
                 {
+                    double previousMu = this.mu[j];
                     this.mu[j] = exi / e;
+                    this.muChange += Math.Abs(this.mu[j] - previousMu);
                 }
             }
         }
