@@ -6,63 +6,43 @@ using System.Threading.Tasks;
 
 namespace Viterbi
 {
-    public class ViterbiAlgorithm
+    public static class ViterbiAlgorithm
     {
-        private readonly int numHiddenStates;
-        private int finalState;
-        private int[,] maxStates;
-        public Dictionary<char,double>[] EmissionProbabilities { get; set; }
-
-        public double[,] TransitionProbabilities { get; set; }
-
-        public double[] InitialTransitionProbabilities { get; set; }
-
-        public char[] HiddenStates { get; set; }
-
-        public ViterbiAlgorithm(int numHiddenStates)
+        public static HmmResult Estimate(string sequence, HmmParameters hmmParameters)
         {
-            this.numHiddenStates = numHiddenStates;
-            this.HiddenStates = new char[numHiddenStates];
-            this.TransitionProbabilities = new double[numHiddenStates, numHiddenStates];
-            this.InitialTransitionProbabilities = new double[numHiddenStates];
-            this.EmissionProbabilities = new Dictionary<char, double>[numHiddenStates];
-        }
-
-        public void Estimate(string sequence)
-        {            
             if (string.IsNullOrEmpty(sequence))
             {
                 throw new ArgumentException("sequence");
             }
 
             int sequenceLength = sequence.Length;
-            this.finalState = -1;
-            this.maxStates = new int[sequenceLength, this.numHiddenStates];
+            int finalState = -1;
+            int[,] maxStates = new int[sequenceLength, hmmParameters.numHiddenStates];
 
-            double[] previousSequenceProbabilities = new double[this.numHiddenStates];
-            double[] currentSequenceProbabilities = new double[this.numHiddenStates];
+            double[] previousSequenceProbabilities = new double[hmmParameters.numHiddenStates];
+            double[] currentSequenceProbabilities = new double[hmmParameters.numHiddenStates];
 
-            for (int i = 0; i < this.numHiddenStates; i++)
+            for (int i = 0; i < hmmParameters.numHiddenStates; i++)
             {
                 maxStates[0, i] = i;
-                previousSequenceProbabilities[i] = Math.Log(this.InitialTransitionProbabilities[i]) + Math.Log(this.EmissionProbabilities[i][sequence[0]]);
+                previousSequenceProbabilities[i] = Math.Log(hmmParameters.InitialTransitionProbabilities[i]) + Math.Log(hmmParameters.EmissionProbabilities[i][sequence[0]]);
             }
 
             for (int i = 1; i < sequenceLength; i++)
             {
                 char currentEmission = sequence[i];
 
-                for (int k = 0; k < this.numHiddenStates; k++)
+                for (int k = 0; k < hmmParameters.numHiddenStates; k++)
                 {
                     double maxSequenceProbability = double.MinValue;
                     int maxState = -1;
 
-                    for (int j = 0; j < this.numHiddenStates; j++)
+                    for (int j = 0; j < hmmParameters.numHiddenStates; j++)
                     {
-                        double sequenceProbability = previousSequenceProbabilities[j] 
-                            + Math.Log(this.TransitionProbabilities[j,k]) + Math.Log(this.EmissionProbabilities[k][currentEmission]);
+                        double sequenceProbability = previousSequenceProbabilities[j]
+                            + Math.Log(hmmParameters.TransitionProbabilities[j, k]) + Math.Log(hmmParameters.EmissionProbabilities[k][currentEmission]);
 
-                        if(sequenceProbability > maxSequenceProbability)
+                        if (sequenceProbability > maxSequenceProbability)
                         {
                             maxSequenceProbability = sequenceProbability;
                             maxState = j;
@@ -70,40 +50,42 @@ namespace Viterbi
                     }
 
                     currentSequenceProbabilities[k] = maxSequenceProbability;
-                    this.maxStates[i, k] = maxState;
+                    maxStates[i, k] = maxState;
                 }
 
                 previousSequenceProbabilities = currentSequenceProbabilities;
-                currentSequenceProbabilities = new double[this.numHiddenStates];
+                currentSequenceProbabilities = new double[hmmParameters.numHiddenStates];
             }
 
             double maxTotalProbability = double.MinValue;
 
-            for (int k = 0; k < this.numHiddenStates; k++)
+            for (int k = 0; k < hmmParameters.numHiddenStates; k++)
             {
                 if (previousSequenceProbabilities[k] > maxTotalProbability)
                 {
                     maxTotalProbability = previousSequenceProbabilities[k];
-                    this.finalState = k;
+                    finalState = k;
                 }
             }
+
+            return TraceBack(finalState, maxStates, sequence, hmmParameters);
         }
 
-        public string TraceBack()
+        private static HmmResult TraceBack(int finalState, int[,] maxStates, string sequence, HmmParameters hmmParameters)
         {
-            StringBuilder sb = new StringBuilder();
-            int i = this.maxStates.GetLength(0);
+            HmmResult hmmResult = new HmmResult(sequence);
+
+            int i = hmmResult.EmittedSequence.Length;
             int currentState = finalState;
 
-            while(i > 0)
+            while (i > 0)
             {
-                sb.Append(this.HiddenStates[currentState]);
+                hmmResult.HiddenStates[i - 1] = currentState;
                 i--;
-                currentState = this.maxStates[i, currentState];
+                currentState = maxStates[i, currentState];
             }
 
-            var cArray = sb.ToString().ToCharArray().Reverse();            
-            return new string(cArray.ToArray());
+            return hmmResult;
         }
     }
 }

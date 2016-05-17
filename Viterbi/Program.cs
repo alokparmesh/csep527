@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,48 +19,58 @@ namespace Viterbi
         {
             string seq = GetSequence("NC_000909.fna");
 
-            ViterbiAlgorithm algo = new ViterbiAlgorithm(2);
-            char low = 'L';
-            char high = 'H';
+            HmmParameters hmmParameters = new HmmParameters(2);
 
-            algo.HiddenStates[0] = low;
-            algo.HiddenStates[1] = high;
+            hmmParameters.InitialTransitionProbabilities[0] = 0.9999;
+            hmmParameters.InitialTransitionProbabilities[1] = 1.0 - hmmParameters.InitialTransitionProbabilities[0];
 
-            algo.InitialTransitionProbabilities[0] = 0.9999;
-            algo.InitialTransitionProbabilities[1] = 1.0 - algo.InitialTransitionProbabilities[0];
-
-            algo.TransitionProbabilities[0, 0] = 0.9999;
-            algo.TransitionProbabilities[0, 1] = 1 - algo.TransitionProbabilities[0, 0];
-            algo.TransitionProbabilities[1, 0] = 0.01;
-            algo.TransitionProbabilities[1, 1] = 1 - algo.TransitionProbabilities[1, 0];
+            hmmParameters.TransitionProbabilities[0, 0] = 0.9999;
+            hmmParameters.TransitionProbabilities[0, 1] = 1 - hmmParameters.TransitionProbabilities[0, 0];
+            hmmParameters.TransitionProbabilities[1, 0] = 0.01;
+            hmmParameters.TransitionProbabilities[1, 1] = 1 - hmmParameters.TransitionProbabilities[1, 0];
 
             Dictionary<char, double> lowProbabilities = new Dictionary<char, double>();
             lowProbabilities.Add('A', 0.25);
             lowProbabilities.Add('C', 0.25);
             lowProbabilities.Add('G', 0.25);
             lowProbabilities.Add('T', 0.25);
-            algo.EmissionProbabilities[0] = lowProbabilities;
+            hmmParameters.EmissionProbabilities[0] = lowProbabilities;
 
             Dictionary<char, double> highProbabilities = new Dictionary<char, double>();
             highProbabilities.Add('A', 0.20);
             highProbabilities.Add('C', 0.30);
             highProbabilities.Add('G', 0.30);
             highProbabilities.Add('T', 0.20);
-            algo.EmissionProbabilities[1] = highProbabilities;
+            hmmParameters.EmissionProbabilities[1] = highProbabilities;
 
-            //algo.Estimate("GCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGC");          
-            algo.Estimate(seq);
-
+            //algo.Estimate("GCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGC");  
             //Console.WriteLine(algo.TraceBack());
-            PrintCpGIsland(algo.TraceBack(), high);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            for (int iteration = 0; iteration < 10; iteration++)
+            {
+                if(iteration == 9)
+                {
+                    stopwatch.Stop();
+                }
+
+                var result = ViterbiAlgorithm.Estimate(seq, hmmParameters);
+                if (iteration == 9)
+                {
+                    PrintCpGIsland(result, 1);
+                }
+                result.UpdateParameters(hmmParameters);
+            }
+
+            Console.WriteLine(stopwatch.ElapsedMilliseconds);
         }
 
-        private static void PrintCpGIsland(string stateSequence, char state)
+        private static void PrintCpGIsland(HmmResult stateSequence, int state)
         {
             int currentpos = 1;
             int cpgIslandStart = -1;
             int cpgIslandLength = 0;
-            foreach (var item in stateSequence)
+            foreach (var item in stateSequence.HiddenStates)
             {
                 if(item.Equals(state))
                 {
@@ -95,20 +106,15 @@ namespace Viterbi
 
         private static void TestDishonestCasino()
         {
-            ViterbiAlgorithm algo = new ViterbiAlgorithm(2);
-            char loaded = 'L';
-            char fair = 'F';
+            HmmParameters hmmParameters = new HmmParameters(2);            
 
-            algo.HiddenStates[0] = loaded;
-            algo.HiddenStates[1] = fair;
+            hmmParameters.InitialTransitionProbabilities[0] = 0.30;
+            hmmParameters.InitialTransitionProbabilities[1] = 1.0 - hmmParameters.InitialTransitionProbabilities[0];
 
-            algo.InitialTransitionProbabilities[0] = 0.30;
-            algo.InitialTransitionProbabilities[1] = 1.0 - algo.InitialTransitionProbabilities[0];
-
-            algo.TransitionProbabilities[0, 0] = 0.90;
-            algo.TransitionProbabilities[0, 1] = 1 - algo.TransitionProbabilities[0, 0];
-            algo.TransitionProbabilities[1, 0] = 0.05;
-            algo.TransitionProbabilities[1, 1] = 1 - algo.TransitionProbabilities[1, 0];
+            hmmParameters.TransitionProbabilities[0, 0] = 0.90;
+            hmmParameters.TransitionProbabilities[0, 1] = 1 - hmmParameters.TransitionProbabilities[0, 0];
+            hmmParameters.TransitionProbabilities[1, 0] = 0.05;
+            hmmParameters.TransitionProbabilities[1, 1] = 1 - hmmParameters.TransitionProbabilities[1, 0];
 
             Dictionary<char, double> loadedProbabilities = new Dictionary<char, double>();
             loadedProbabilities.Add('1', 0.1);
@@ -117,7 +123,7 @@ namespace Viterbi
             loadedProbabilities.Add('4', 0.1);
             loadedProbabilities.Add('5', 0.1);
             loadedProbabilities.Add('6', 0.5);
-            algo.EmissionProbabilities[0] = loadedProbabilities;
+            hmmParameters.EmissionProbabilities[0] = loadedProbabilities;
 
             Dictionary<char, double> fairProbabilities = new Dictionary<char, double>();
             fairProbabilities.Add('1', 1.0 / 6.0);
@@ -126,10 +132,12 @@ namespace Viterbi
             fairProbabilities.Add('4', 1.0 / 6.0);
             fairProbabilities.Add('5', 1.0 / 6.0);
             fairProbabilities.Add('6', 1.0 / 6.0);
-            algo.EmissionProbabilities[1] = fairProbabilities;
+            hmmParameters.EmissionProbabilities[1] = fairProbabilities;
 
-            algo.Estimate("1111166666");
-            Console.WriteLine(algo.TraceBack());
+            foreach(var item in ViterbiAlgorithm.Estimate("1111166666", hmmParameters).HiddenStates)
+            {
+                Console.Write(item);
+            }
         }
 
         private static string GetSequence(string fileName)
