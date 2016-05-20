@@ -14,8 +14,6 @@ namespace Viterbi
     /// </summary>
     public static class SequenceRetriever
     {
-        private const string folderPath = "Sequences";
-
         /// <summary>
         /// Get the fasta file and read the sequence from file
         /// </summary>
@@ -25,7 +23,7 @@ namespace Viterbi
         public static bool TryRetrieveSequence(string fileName, out string sequence)
         {
             sequence = null;
-            string fullFileName = Path.Combine(folderPath, fileName);
+            string fullFileName = fileName;
             // Find the parser
             if (!File.Exists(fullFileName))
             {

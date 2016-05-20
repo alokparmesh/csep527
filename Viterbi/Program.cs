@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -9,15 +10,29 @@ namespace Viterbi
 {
     public class Program
     {
+        public static int TotalIteration = 10;
+        public static int HitsToPrint = 5;
+
         public static void Main(string[] args)
         {
-            TestCpGIsland();
+            if(args.Length < 1)
+            {
+                throw new ArgumentException("Please provide filename as argument");
+            }
+            int.TryParse(ConfigurationManager.AppSettings["totalIteration"], out TotalIteration);
+            int.TryParse(ConfigurationManager.AppSettings["hitsToPrint"], out HitsToPrint);
+
+            TestCpGIsland(args[0]);
             //TestDishonestCasino();
         }
 
-        private static void TestCpGIsland()
+        /// <summary>
+        /// Setup initial parameter and print hits
+        /// </summary>
+        /// <param name="fileName"></param>
+        private static void TestCpGIsland(string fileName)
         {
-            string seq = GetSequence("NC_000909.fna");
+            string seq = GetSequence(fileName);
 
             HmmParameters hmmParameters = new HmmParameters(2);
 
@@ -43,54 +58,63 @@ namespace Viterbi
             highProbabilities.Add('T', 0.20);
             hmmParameters.EmissionProbabilities[1] = highProbabilities;
 
-            //algo.Estimate("GCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGCGCGCGCCCCCCCGCGC");  
-            //Console.WriteLine(algo.TraceBack());
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
-            for (int iteration = 0; iteration < 10; iteration++)
+            for (int iteration = 1; iteration <= TotalIteration; iteration++)
             {
-                if(iteration == 9)
-                {
-                    stopwatch.Stop();
-                }
-
+                Console.WriteLine("Iteration #{0}", iteration);
+                Console.WriteLine("-----------");
+                var st = Stopwatch.StartNew();
+                hmmParameters.Print();
+                Console.WriteLine();
                 var result = ViterbiAlgorithm.Estimate(seq, hmmParameters);
-                if (iteration == 9)
-                {
-                    PrintCpGIsland(result, 1);
-                }
-                result.UpdateParameters(hmmParameters);
-            }
 
-            Console.WriteLine(stopwatch.ElapsedMilliseconds);
+                Console.WriteLine("Log probability : {0}", result.LogProbability.ToString("#.000000"));
+                Console.WriteLine();
+                PrintCpGIsland(result, 1, iteration == TotalIteration ? int.MaxValue : HitsToPrint);
+                result.UpdateParameters(hmmParameters);
+                st.Stop();
+                //Console.WriteLine("ElapsedMilliseconds {0}", st.ElapsedMilliseconds);
+                Console.WriteLine();
+            }
         }
 
-        private static void PrintCpGIsland(HmmResult stateSequence, int state)
+        /// <summary>
+        /// Print Hits
+        /// </summary>
+        /// <param name="stateSequence">HMM State Sequence</param>
+        /// <param name="state">State for which hits are calculated</param>
+        /// <param name="hitsToPrint">Number of hits to print</param>
+        private static void PrintCpGIsland(HmmResult stateSequence, int state, int hitsToPrint)
         {
             int currentpos = 1;
             int cpgIslandStart = -1;
-            int cpgIslandLength = 0;
+            int cpgIslandEnd = -1;
+            int totalHits = 0;
             foreach (var item in stateSequence.HiddenStates)
             {
                 if(item.Equals(state))
                 {
                     if(cpgIslandStart > 0)
                     {
-                        cpgIslandLength++;
+                        cpgIslandEnd = currentpos;
                     }
                     else
                     {
                         cpgIslandStart = currentpos;
-                        cpgIslandLength = 1;                        
+                        cpgIslandEnd = currentpos;
                     }
                 }
                 else
                 {
                     if (cpgIslandStart > 0)
                     {
-                        Console.WriteLine("Start {0}, Length {1}", cpgIslandStart, cpgIslandLength);
+                        totalHits++;
+                        if (totalHits <= hitsToPrint)
+                        {
+                            Console.WriteLine("[{0}]\tStart: {1},\tEnd: {2},\tLength: {3}", totalHits, cpgIslandStart, cpgIslandEnd, cpgIslandEnd - cpgIslandStart + 1);
+                        }
                         cpgIslandStart = -1;
-                        cpgIslandLength = 0;
+                        cpgIslandEnd = -1;
+                       
                     }                    
                 }
                 currentpos++;
@@ -98,12 +122,21 @@ namespace Viterbi
 
             if (cpgIslandStart > 0)
             {
-                Console.WriteLine("Start {0}, Length {1}", cpgIslandStart, cpgIslandLength);
+                totalHits++;
+                if (totalHits <= hitsToPrint)
+                {
+                    Console.WriteLine("[{0}]\tStart: {1},\tEnd: {2},\tLength: {3}", totalHits, cpgIslandStart, cpgIslandEnd, cpgIslandEnd - cpgIslandStart + 1);
+                }
                 cpgIslandStart = -1;
-                cpgIslandLength = 0;
+                cpgIslandEnd = -1;               
             }
+
+            Console.WriteLine("Total Hits : {0}", totalHits);
         }
 
+        /// <summary>
+        /// Test case of loaded die
+        /// </summary>
         private static void TestDishonestCasino()
         {
             HmmParameters hmmParameters = new HmmParameters(2);            
@@ -140,6 +173,11 @@ namespace Viterbi
             }
         }
 
+        /// <summary>
+        /// Get sequence from fasta file
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         private static string GetSequence(string fileName)
         {
             string seq = null;

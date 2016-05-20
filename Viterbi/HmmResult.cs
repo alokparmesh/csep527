@@ -6,13 +6,27 @@ using System.Threading.Tasks;
 
 namespace Viterbi
 {
+    /// <summary>
+    /// Result of Viterbi HMM
+    /// </summary>
     public class HmmResult
     {
+        /// <summary>
+        /// Emitted Sequence
+        /// </summary>
         public string EmittedSequence { get; private set; }
 
+        /// <summary>
+        /// Hidden States
+        /// </summary>
         public int[] HiddenStates { get; set; }
 
-        public HmmResult(string emittedSequence)
+        /// <summary>
+        /// Log probability of Viterbi path
+        /// </summary>
+        public double LogProbability { get; private set; }
+
+        public HmmResult(string emittedSequence, double logProbability)
         {
             if (string.IsNullOrEmpty(emittedSequence))
             {
@@ -20,6 +34,7 @@ namespace Viterbi
             }
 
             this.EmittedSequence = emittedSequence;
+            this.LogProbability = logProbability;
             this.HiddenStates = new int[emittedSequence.Length];
         }
 

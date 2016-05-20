@@ -8,6 +8,12 @@ namespace Viterbi
 {
     public static class ViterbiAlgorithm
     {
+        /// <summary>
+        /// Find Viterbi path and traceback
+        /// </summary>
+        /// <param name="sequence"></param>
+        /// <param name="hmmParameters"></param>
+        /// <returns></returns>
         public static HmmResult Estimate(string sequence, HmmParameters hmmParameters)
         {
             if (string.IsNullOrEmpty(sequence))
@@ -68,12 +74,21 @@ namespace Viterbi
                 }
             }
 
-            return TraceBack(finalState, maxStates, sequence, hmmParameters);
+            return TraceBack(finalState, maxTotalProbability, maxStates, sequence, hmmParameters);
         }
 
-        private static HmmResult TraceBack(int finalState, int[,] maxStates, string sequence, HmmParameters hmmParameters)
+        /// <summary>
+        /// Traceback the hidden states from stored max states
+        /// </summary>
+        /// <param name="finalState"></param>
+        /// <param name="finalLogProbability"></param>
+        /// <param name="maxStates"></param>
+        /// <param name="sequence"></param>
+        /// <param name="hmmParameters"></param>
+        /// <returns></returns>
+        private static HmmResult TraceBack(int finalState, double finalLogProbability, int[,] maxStates, string sequence, HmmParameters hmmParameters)
         {
-            HmmResult hmmResult = new HmmResult(sequence);
+            HmmResult hmmResult = new HmmResult(sequence, finalLogProbability);
 
             int i = hmmResult.EmittedSequence.Length;
             int currentState = finalState;
