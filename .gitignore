@@ -45,24 +45,36 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+NC_000909.fna
+NC_000909.gbk
+NC_000909.rnt
+
 SequenceAlignment/bin
 SequenceAlignment/obj
 SequenceAlignment/packages
 SequenceAlignment/.vs
+
 ParameterEstimation/bin
 ParameterEstimation/obj
 ParameterEstimation/packages
 ParameterEstimation/.vs
 ParameterEstimation/binaries
+
 Viterbi/bin
 Viterbi/obj
 Viterbi/packages
 Viterbi/.vs
+Viterbi/Binaries
+
 RNAseq/glogg
 RNAseq/GVimPortable
 RNAseq/LogExpert_1_5_5493
 RNAseq/glogg-latest-x86_64-setup.exe
 RNAseq/GVim_Portable_7.1.0.exe
+RNAseq/all.sam.gz
+RNAseq/unaligned.fastq
+RNAseq/unaligned.fastq.gz
 RNAseq/polyA/bin
 RNAseq/polyA/obj
 RNAseq/polyA/packages
