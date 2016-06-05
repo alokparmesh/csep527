@@ -58,7 +58,17 @@ Viterbi/bin
 Viterbi/obj
 Viterbi/packages
 Viterbi/.vs
+RNAseq/glogg
+RNAseq/GVimPortable
+RNAseq/LogExpert_1_5_5493
+RNAseq/glogg-latest-x86_64-setup.exe
+RNAseq/GVim_Portable_7.1.0.exe
+RNAseq/polyA/bin
+RNAseq/polyA/obj
+RNAseq/polyA/packages
+RNAseq/polyA/.vs
 *.pdf
 *.docx
 *.zip
 *.pptx
+*.sam
