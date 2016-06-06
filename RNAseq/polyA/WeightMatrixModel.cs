@@ -29,6 +29,7 @@ namespace polyA
 
         public void Match(List<AlignmentLine> alignments)
         {
+            PrintRelativeEntropy();
             double hitCount = 0;
             double sumCleavageDistance = 0.0;
             this.outputDistribution = new double[4, 6];
@@ -39,12 +40,12 @@ namespace polyA
 
                 double maxLogRatio = double.MinValue;
                 int motifPosition = -1;
-                for (int i = 0; i < sequence.Length - 6; i++)
+                for (int i = 0; i <= sequence.Length - 6; i++)
                 {
                     string motif = sequence.Substring(i, 6);
 
                     double logRatio = 0.0;
-                    double probability = 1.0 / (sequence.Length - 6);
+                    double probability = 1.0 / (sequence.Length - 5);
 
                     for (int j = 0; j < 6; j++)
                     {
@@ -70,6 +71,9 @@ namespace polyA
                 {
                     hitCount++;
                     sumCleavageDistance += sequence.Length - motifPosition;
+                    //Console.WriteLine(motifPosition);
+                    //Console.WriteLine(sequence.Length - motifPosition);
+                    //Console.WriteLine();
                 }
             }
 
@@ -89,6 +93,23 @@ namespace polyA
 
             Console.WriteLine(hitCount);
             Console.WriteLine(sumCleavageDistance / hitCount);
+        }
+
+        private void PrintRelativeEntropy()
+        {
+            double relativeEntropy = 0.0;
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 6; j++)
+                {
+                    if (this.weightDistribution[i, j] > 0)
+                    {
+                        relativeEntropy += this.weightDistribution[i, j] * Math.Log(this.weightDistribution[i, j] / this.baseDistribution[i, j], 2);
+                    }
+                }
+            }
+
+            Console.WriteLine(relativeEntropy);
         }
 
         private int GetIndex(char c)

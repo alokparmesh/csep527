@@ -283,7 +283,7 @@ namespace polyA
                     double currentTailRatioOfA = ((double)countOfA) / totalCount;
                     double currentMatchDifference = forwardMatch[i] - backwardMatch[i];
 
-                    if (currentTailRatioOfA > Program.RNAErrorRate
+                    if (currentTailRatioOfA > Program.RnaAccuracyRate
                         && countOfA >= Program.MinimumPolyATailLength
                         && currentMatchDifference >= maxMatchDifference)
                     {
@@ -292,14 +292,14 @@ namespace polyA
                     }
                 }
 
-                if (totalCount - countOfA > (1 - Program.RNAErrorRate) * 75)
+                if (totalCount - countOfA > (1 - Program.RnaAccuracyRate) * 75)
                 {
                     break;
                 }
             }
 
             if (aTailStart >= 0
-                && forwardMatch[aTailStart] > Program.RNAErrorRate
+                && forwardMatch[aTailStart] > Program.RnaAccuracyRate
                 && backwardMatch[aTailStart] < 0.4)
             {
                 this.CleavageSite = aTailStart;

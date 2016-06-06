@@ -15,7 +15,7 @@ namespace polyA
         private const string allSamFile = @"G:\code\csep527\RNAseq\readoutput.sam";
         private const string outputFileFormat = @"G:\code\csep527\RNAseq\readoutput_{0}.sam";
         public const int MinimumPolyATailLength = 5;
-        public const double RNAErrorRate = (14.0 / 15.0);
+        public const double RnaAccuracyRate = (14.0 / 15.0);
 
         private static bool AlignmentFilter(AlignmentLine alignmentLine)
         {
@@ -44,13 +44,13 @@ namespace polyA
                     countOfA++;
                     double currentTailRatioOfA = ((double)countOfA) / totalCount;
 
-                    if (currentTailRatioOfA > Program.RNAErrorRate)
+                    if (currentTailRatioOfA > Program.RnaAccuracyRate)
                     {
                         aTailLength = countOfA;
                     }
                 }
 
-                if (totalCount - countOfA > (1-Program.RNAErrorRate) * 75)
+                if (totalCount - countOfA > (1-Program.RnaAccuracyRate) * 75)
                 {
                     break;
                 }
@@ -212,7 +212,8 @@ namespace polyA
 
                     if (writeOutput)
                     {
-                        outputFile.WriteLine(line);
+                        outputFile.Write(line);
+                        outputFile.WriteLine("\t{0}", alignment.CleavageMarkedSequence);
                     }
 
                     result.Add(alignment);
@@ -227,7 +228,8 @@ namespace polyA
                 outputFile.Close();
             }
 
-            Console.WriteLine("{0} candidates selected out of {1} reads examinded. Time taken(s):{2}", sequenceCount, totalCount, stopwatch.ElapsedMilliseconds / 1000);
+            Console.WriteLine("Condition Minimum A-Tail Length: {0}, RNA Accuracy: {1}", MinimumPolyATailLength,RnaAccuracyRate);
+            Console.WriteLine("{0} candidates selected out of {1} reads examined. Time taken(s):{2}", sequenceCount, totalCount, stopwatch.ElapsedMilliseconds / 1000);
             return result;
         }
     }
