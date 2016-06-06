@@ -14,7 +14,6 @@ namespace polyA
         private const bool writeOutput = false;
         private const string allSamFile = @"G:\code\csep527\RNAseq\readoutput.sam";
         private const string outputFileFormat = @"G:\code\csep527\RNAseq\readoutput_{0}.sam";
-        private const string regexCigar = @"[0-9]+[MIDNSHPX=]";
 
         private static bool AlignmentFilter(AlignmentLine alignmentLine)
         {
@@ -70,8 +69,10 @@ namespace polyA
         {
             int totalCount = 0;
             int sequenceCount = 0;
+            int AATAAACount = 0;
+            double AATAAALength = 0;
             string line;
-            Dictionary<int, int> alignmentHisto = new Dictionary<int, int>();
+
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             // Read the file and display it line by line.
@@ -107,9 +108,29 @@ namespace polyA
 
                     alignment.FixUnidentifiedReads();
 
-                    if(alignment.NumMismatches <=2 )
+                    if(alignment.NumMismatches <=2)
                     {
                         continue;
+                    }
+
+                    alignment.FindCleavageSite();
+                    if (alignment.CleavageSite < 0)
+                    {
+                        continue;
+                    }
+
+                    if(alignment.CleavageMarkedSequence.Split('.')[0].Contains("AATAAA"))
+                    {
+                        AATAAACount++;
+                        AATAAALength += alignment.CleavageMarkedSequence.Split('.')[0].Length - alignment.CleavageMarkedSequence.Split('.')[0].LastIndexOf("AATAAA");
+
+                        /*
+                        Console.WriteLine(alignment.QName);
+                        Console.WriteLine(alignment.Cigar);
+                        Console.WriteLine(alignment.MismatchString);
+                        Console.WriteLine(alignment.CleavageMarkedSequence);
+                        Console.WriteLine();
+                        */
                     }
 
                     if (writeOutput)
@@ -117,35 +138,6 @@ namespace polyA
                         outputFile.WriteLine(line);
                     }
 
-                    
-
-                    /*
-                    if(!alignment.Cigar.Equals("75M"))
-                    {
-                        bool print = false;
-                        foreach(Match m in Regex.Matches(alignment.Cigar, regexCigar))
-                        {
-                            char cigarStep = m.Value[m.Value.Length -1];
-                            if ( cigarStep != 'M' && cigarStep !='I' && cigarStep != 'D')
-                            {
-                                print = true;
-                            }
-                        }
-
-                       if(print)
-                            Console.WriteLine(alignment.Cigar);
-                    }
-                    */
-                    
-                    int bucket = alignment.AlignmentScore;
-
-                    if (!alignmentHisto.ContainsKey(bucket))
-                    {
-                        alignmentHisto[bucket] = 0;
-                    }
-
-                    alignmentHisto[bucket] += 1;
-                    
                     sequenceCount++;
                 }
             }
@@ -157,13 +149,9 @@ namespace polyA
                 outputFile.Close();
             }
 
-            // Suspend the screen.
-            Console.WriteLine("Found suitable {0} out of {1}, time:{2}", sequenceCount, totalCount, stopwatch.ElapsedMilliseconds / 1000);
-            foreach (var item in alignmentHisto)
-            {
-                Console.WriteLine(item.Key + "\t" + item.Value);
-            }
-            Console.ReadLine();
+            Console.WriteLine("Found suitable candidates {0} out of total {1}, time:{2}", sequenceCount, totalCount, stopwatch.ElapsedMilliseconds / 1000);
+            Console.WriteLine(AATAAACount);
+            Console.WriteLine(AATAAALength/AATAAACount);
         }
     }
 }
