@@ -266,7 +266,6 @@ namespace polyA
             int totalCount = 0;
             int countOfA = 0;
             int aTailStart = int.MinValue;
-            double threshold = (14.0 / 15.0);
             double maxMatchDifference = double.MinValue;
 
             for (int i = readSequenceArray.Length - 1; i >= 0; i--)
@@ -284,8 +283,8 @@ namespace polyA
                     double currentTailRatioOfA = ((double)countOfA) / totalCount;
                     double currentMatchDifference = forwardMatch[i] - backwardMatch[i];
 
-                    if (currentTailRatioOfA > threshold
-                        && countOfA >= 5
+                    if (currentTailRatioOfA > Program.RNAErrorRate
+                        && countOfA >= Program.MinimumPolyATailLength
                         && currentMatchDifference >= maxMatchDifference)
                     {
                         aTailStart = i;
@@ -293,14 +292,14 @@ namespace polyA
                     }
                 }
 
-                if (totalCount - countOfA > 5)
+                if (totalCount - countOfA > (1 - Program.RNAErrorRate) * 75)
                 {
                     break;
                 }
             }
 
             if (aTailStart >= 0
-                && forwardMatch[aTailStart] > 0.9
+                && forwardMatch[aTailStart] > Program.RNAErrorRate
                 && backwardMatch[aTailStart] < 0.4)
             {
                 this.CleavageSite = aTailStart;

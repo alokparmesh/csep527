@@ -9,18 +9,19 @@ using System.Threading.Tasks;
 
 namespace polyA
 {
-    class Program
+    public class Program
     {
         private const bool writeOutput = false;
         private const string allSamFile = @"G:\code\csep527\RNAseq\readoutput.sam";
         private const string outputFileFormat = @"G:\code\csep527\RNAseq\readoutput_{0}.sam";
+        public const int MinimumPolyATailLength = 5;
+        public const double RNAErrorRate = (14.0 / 15.0);
 
         private static bool AlignmentFilter(AlignmentLine alignmentLine)
         {
             int totalCount = 0;
             int countOfA = 0;
             int aTailLength = 0;
-            double threshold = (14.0 / 15.0);
 
             if (alignmentLine.Cigar.Equals("*"))
             {
@@ -43,19 +44,19 @@ namespace polyA
                     countOfA++;
                     double currentTailRatioOfA = ((double)countOfA) / totalCount;
 
-                    if (currentTailRatioOfA > threshold)
+                    if (currentTailRatioOfA > Program.RNAErrorRate)
                     {
                         aTailLength = countOfA;
                     }
                 }
 
-                if (totalCount - countOfA > 5)
+                if (totalCount - countOfA > (1-Program.RNAErrorRate) * 75)
                 {
                     break;
                 }
             }
 
-            if (aTailLength >= 5)
+            if (aTailLength >= Program.MinimumPolyATailLength)
             {
                 return false;
             }
