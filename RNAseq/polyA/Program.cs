@@ -67,11 +67,100 @@ namespace polyA
 
         static void Main(string[] args)
         {
+            var result = GetCandidates();
+            double[,] baseDistribution = GetBaseDistribution();
+
+            Console.WriteLine("WMM0");
+            WeightMatrixModel model = new WeightMatrixModel(GetWMM0Distribution(), baseDistribution);
+            model.Match(result);
+            PrintOutputDistribution(model.OutputDistribution);
+
+            Console.WriteLine("WMM1");
+            model = new WeightMatrixModel(GetWMM1Distribution(), baseDistribution);
+            model.Match(result);
+            PrintOutputDistribution(model.OutputDistribution);
+
+            Console.WriteLine("WMM2");
+            model = new WeightMatrixModel(model.OutputDistribution, baseDistribution);
+            model.Match(result);
+            PrintOutputDistribution(model.OutputDistribution);
+        }
+
+        private static void PrintOutputDistribution(double[,] outputDistribution)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 6; j++)
+                {
+                    Console.Write(Math.Round(outputDistribution[i, j],4));
+                    Console.Write("\t");
+                }
+                Console.WriteLine();
+            }
+        }
+
+        private static double[,] GetBaseDistribution()
+        {
+            double[,] baseDistribution = new double[4, 6];
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 6; j++)
+                {
+                    baseDistribution[i, j] = 0.25;
+                }
+            }
+
+            return baseDistribution;
+        }
+
+        private static double[,] GetWMM0Distribution()
+        {
+            double[,] distribution = new double[4, 6];
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 6; j++)
+                {
+                    distribution[i, j] = 0.0;
+                }
+            }
+
+            distribution[0, 0] = 1.0;
+            distribution[0, 1] = 1.0;
+            distribution[3, 2] = 1.0;
+            distribution[0, 3] = 1.0;
+            distribution[0, 4] = 1.0;
+            distribution[0, 5] = 1.0;
+
+            return distribution;
+        }
+
+        private static double[,] GetWMM1Distribution()
+        {
+            double[,] distribution = new double[4, 6];
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 6; j++)
+                {
+                    distribution[i, j] = 0.05;
+                }
+            }
+
+            distribution[0, 0] = 0.85;
+            distribution[0, 1] = 0.85;
+            distribution[3, 2] = 0.85;
+            distribution[0, 3] = 0.85;
+            distribution[0, 4] = 0.85;
+            distribution[0, 5] = 0.85;
+
+            return distribution;
+        }
+
+        private static List<AlignmentLine> GetCandidates()
+        {
             int totalCount = 0;
             int sequenceCount = 0;
-            int AATAAACount = 0;
-            double AATAAALength = 0;
             string line;
+            List<AlignmentLine> result = new List<AlignmentLine>();
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -85,6 +174,7 @@ namespace polyA
                 Console.WriteLine("Writing to {0}", outputFileName);
                 outputFile = new StreamWriter(outputFileName);
             }
+
             while ((line = samFile.ReadLine()) != null)
             {
                 if (line.StartsWith("@"))
@@ -108,7 +198,7 @@ namespace polyA
 
                     alignment.FixUnidentifiedReads();
 
-                    if(alignment.NumMismatches <=2)
+                    if (alignment.NumMismatches <= 2)
                     {
                         continue;
                     }
@@ -119,25 +209,12 @@ namespace polyA
                         continue;
                     }
 
-                    if(alignment.CleavageMarkedSequence.Split('.')[0].Contains("AATAAA"))
-                    {
-                        AATAAACount++;
-                        AATAAALength += alignment.CleavageMarkedSequence.Split('.')[0].Length - alignment.CleavageMarkedSequence.Split('.')[0].LastIndexOf("AATAAA");
-
-                        /*
-                        Console.WriteLine(alignment.QName);
-                        Console.WriteLine(alignment.Cigar);
-                        Console.WriteLine(alignment.MismatchString);
-                        Console.WriteLine(alignment.CleavageMarkedSequence);
-                        Console.WriteLine();
-                        */
-                    }
-
                     if (writeOutput)
                     {
                         outputFile.WriteLine(line);
                     }
 
+                    result.Add(alignment);
                     sequenceCount++;
                 }
             }
@@ -149,9 +226,8 @@ namespace polyA
                 outputFile.Close();
             }
 
-            Console.WriteLine("Found suitable candidates {0} out of total {1}, time:{2}", sequenceCount, totalCount, stopwatch.ElapsedMilliseconds / 1000);
-            Console.WriteLine(AATAAACount);
-            Console.WriteLine(AATAAALength/AATAAACount);
+            Console.WriteLine("{0} candidates selected out of {1} reads examinded. Time taken(s):{2}", sequenceCount, totalCount, stopwatch.ElapsedMilliseconds / 1000);
+            return result;
         }
     }
 }
