@@ -88,3 +88,4 @@ RNAseq/polyA/.vs
 *.pptx
 *.sam
 NC_000909.rnt
+*.user

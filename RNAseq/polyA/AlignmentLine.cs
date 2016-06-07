@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace polyA
 {
+    /// <summary>
+    /// Class for each read
+    /// </summary>
     public class AlignmentLine
     {
         private const string regexCigar = @"[0-9]+[MIDNSHPX=]";
@@ -98,6 +101,13 @@ namespace polyA
 
         public string CleavageMarkedSequence { get; private set; }
 
+        public string ReadSequence { get; private set; }
+
+        public string ReferenceSequence { get; private set; }
+
+        /// <summary>
+        /// Adjust alignment scores by ignoring Ns
+        /// </summary>
         public void FixUnidentifiedReads()
         {
             char[] sequence = this.Sequence.ToCharArray();
@@ -113,6 +123,10 @@ namespace polyA
             }
         }
 
+        /// <summary>
+        /// Find the cleavage site by first reconstructing read and reference
+        /// Use Cigar and MD string to reconstruct
+        /// </summary>
         public void FindCleavageSite()
         {
             StringBuilder referenceSequence = new StringBuilder();
@@ -186,87 +200,29 @@ namespace polyA
                 }
             }
 
-            this.CalculatePolyA(readSequence.ToString(), new string(sequence));
+            this.ReadSequence = readSequence.ToString();
+            this.ReferenceSequence = new string(sequence);
+
+            this.CalculatePolyA();
         }
 
-        private void CalculatePolyA(string readSequence, string referenceSequence)
+        /// <summary>
+        /// Find cleavage site by checking
+        /// Gene match ratio is above threshold
+        /// Tail mismatch ratio is above threshold
+        /// Minimum length and density of As
+        /// </summary>
+        private void CalculatePolyA()
         {
-            var readSequenceArray = readSequence.ToCharArray();
-            var referenceSequenceArray = referenceSequence.ToCharArray();
+            var readSequenceArray = this.ReadSequence.ToCharArray();
+            var referenceSequenceArray = this.ReferenceSequence.ToCharArray();
 
-            double[] forwardMatch = new double[readSequenceArray.Length];
-            double[] backwardMatch = new double[readSequenceArray.Length];
-
-            int currentMatch = 0;
-            int currentLength = 0;
-            for (int i = 0; i < readSequenceArray.Length; i++)
-            {
-                if (readSequenceArray[i] == 'N' || referenceSequenceArray[i] == 'N')
-                {
-                    forwardMatch[i] = currentLength == 0 ? 0.0 : ((double)currentMatch / currentLength);
-                    continue;
-                }
-
-                if (readSequenceArray[i] == referenceSequenceArray[i])
-                {
-                    currentMatch++;
-                    currentLength++;
-                    forwardMatch[i] = currentLength == 0 ? 0.0 : ((double)currentMatch / currentLength);
-                }
-                else if (readSequenceArray[i] == '*' || referenceSequenceArray[i] == '*')
-                {
-                    currentLength++;
-                    while ((readSequenceArray[i] == '*' || referenceSequenceArray[i] == '*') && i < readSequenceArray.Length)
-                    {
-                        forwardMatch[i] = currentLength == 0 ? 0.0 : ((double)currentMatch / currentLength);
-                        i++;
-                    }
-                    i--;
-                }
-                else
-                {
-                    currentLength++;
-                    forwardMatch[i] = currentLength == 0 ? 0.0 : ((double)currentMatch / currentLength);
-                }
-            }
-
-            currentMatch = 0;
-            currentLength = 0;
-            for (int i = readSequenceArray.Length - 1; i >= 0; i--)
-            {
-                if (readSequenceArray[i] == 'N' || referenceSequenceArray[i] == 'N')
-                {
-                    backwardMatch[i] = currentLength == 0 ? 0.0 : ((double)currentMatch / currentLength);
-                    continue;
-                }
-
-                if (readSequenceArray[i] == referenceSequenceArray[i])
-                {
-                    currentMatch++;
-                    currentLength++;
-                    backwardMatch[i] = currentLength == 0 ? 0.0 : ((double)currentMatch / currentLength);
-                }
-                else if (readSequenceArray[i] == '*' || referenceSequenceArray[i] == '*')
-                {
-                    currentLength++;
-                    while ((readSequenceArray[i] == '*' || referenceSequenceArray[i] == '*') && i >=0)
-                    {
-                        backwardMatch[i] = currentLength == 0 ? 0.0 : ((double)currentMatch / currentLength);
-                        i--;
-                    }
-                    i++;
-                }
-                else
-                {
-                    currentLength++;
-                    backwardMatch[i] = currentLength == 0 ? 0.0 : ((double)currentMatch / currentLength);
-                }
-            }
+            Tuple<int, int>[] forwardMatch = DoForwardMatch(readSequenceArray, referenceSequenceArray);
+            Tuple<int, int>[] backwardMatch = DoBackwardMatch(readSequenceArray, referenceSequenceArray);
 
             int totalCount = 0;
             int countOfA = 0;
             int aTailStart = int.MinValue;
-            double maxMatchDifference = double.MinValue;
 
             for (int i = readSequenceArray.Length - 1; i >= 0; i--)
             {
@@ -281,14 +237,15 @@ namespace polyA
                 {
                     countOfA++;
                     double currentTailRatioOfA = ((double)countOfA) / totalCount;
-                    double currentMatchDifference = forwardMatch[i] - backwardMatch[i];
+                    double geneMatchRatio = forwardMatch[i].Item2 > 0 ? ((double)forwardMatch[i].Item1 / forwardMatch[i].Item2) : 0.0;
+                    double tailMatchRatio = backwardMatch[i].Item2 > 0 ? ((double)backwardMatch[i].Item1 / backwardMatch[i].Item2) : 0.0;
 
-                    if (currentTailRatioOfA > Program.RnaAccuracyRate
-                        && countOfA >= Program.MinimumPolyATailLength
-                        && currentMatchDifference >= maxMatchDifference)
+                    if (geneMatchRatio > Program.RnaAccuracyRate
+                        && tailMatchRatio < Program.TailMatchRatio
+                        && currentTailRatioOfA > Program.RnaAccuracyRate
+                        && countOfA >= Program.MinimumPolyATailLength)
                     {
                         aTailStart = i;
-                        maxMatchDifference = currentMatchDifference;
                     }
                 }
 
@@ -298,13 +255,105 @@ namespace polyA
                 }
             }
 
-            if (aTailStart >= 0
-                && forwardMatch[aTailStart] > Program.RnaAccuracyRate
-                && backwardMatch[aTailStart] < 0.4)
+            if (aTailStart >= 0)
             {
                 this.CleavageSite = aTailStart;
-                this.CleavageMarkedSequence = string.Concat(readSequence.Substring(0, aTailStart), ".", readSequence.Substring(aTailStart, readSequence.Length - aTailStart));
+                this.CleavageMarkedSequence = string.Concat(this.ReadSequence.Substring(0, aTailStart), ".", this.ReadSequence.Substring(aTailStart, this.ReadSequence.Length - aTailStart));
             }
+        }
+
+        /// <summary>
+        /// Calculate matches in backward direction
+        /// </summary>
+        /// <param name="readSequenceArray"></param>
+        /// <param name="referenceSequenceArray"></param>
+        /// <returns></returns>
+        private static Tuple<int, int>[] DoBackwardMatch(char[] readSequenceArray, char[] referenceSequenceArray)
+        {
+            Tuple<int, int>[] backwardMatch = new Tuple<int, int>[readSequenceArray.Length];
+
+            int currentMatch = 0;
+            int currentLength = 0;
+            for (int i = readSequenceArray.Length - 1; i >= 0; i--)
+            {
+                if (readSequenceArray[i] == 'N' || referenceSequenceArray[i] == 'N')
+                {
+                    backwardMatch[i] = Tuple.Create(currentMatch, currentLength);
+                    continue;
+                }
+
+                if (readSequenceArray[i] == referenceSequenceArray[i])
+                {
+                    currentMatch++;
+                    currentLength++;
+                    backwardMatch[i] = Tuple.Create(currentMatch, currentLength);
+                }
+                // Treat inserts and deletes as single mismatch
+                else if (readSequenceArray[i] == '*' || referenceSequenceArray[i] == '*')
+                {
+                    currentLength++;
+                    while ((readSequenceArray[i] == '*' || referenceSequenceArray[i] == '*') && i >= 0)
+                    {
+                        backwardMatch[i] = Tuple.Create(currentMatch, currentLength);
+                        i--;
+                    }
+                    i++;
+                }
+                else
+                {
+                    currentLength++;
+                    backwardMatch[i] = Tuple.Create(currentMatch, currentLength);
+                }
+            }
+
+            return backwardMatch;
+        }
+
+        /// <summary>
+        /// Calculate matches in forward direction
+        /// </summary>
+        /// <param name="readSequenceArray"></param>
+        /// <param name="referenceSequenceArray"></param>
+        /// <returns></returns>
+        private Tuple<int, int>[] DoForwardMatch(char[] readSequenceArray, char[] referenceSequenceArray)
+        {
+            Tuple<int, int>[] forwardMatch = new Tuple<int, int>[readSequenceArray.Length];
+
+            int currentMatch = 0;
+            int currentLength = 0;
+            for (int i = 0; i < readSequenceArray.Length; i++)
+            {
+                if (readSequenceArray[i] == 'N' || referenceSequenceArray[i] == 'N')
+                {
+                    forwardMatch[i] = Tuple.Create(currentMatch, currentLength);
+                    continue;
+                }
+
+                if (readSequenceArray[i] == referenceSequenceArray[i])
+                {
+                    currentMatch++;
+                    currentLength++;
+                    forwardMatch[i] = Tuple.Create(currentMatch, currentLength);
+                }
+                // Treat inserts and deletes as single mismatch
+                else if (readSequenceArray[i] == '*' || referenceSequenceArray[i] == '*')
+                {
+                    currentLength++;
+                    while ((readSequenceArray[i] == '*' || referenceSequenceArray[i] == '*') && i < readSequenceArray.Length)
+                    {
+                        forwardMatch[i] = Tuple.Create(currentMatch, currentLength);
+                        i++;
+                    }
+                    i--;
+                }
+                else
+                {
+                    currentLength++;
+                    forwardMatch[i] = Tuple.Create(currentMatch, currentLength);
+                }
+            }
+
+            return forwardMatch;
         }
 
         /// <summary>

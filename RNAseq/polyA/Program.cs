@@ -12,17 +12,25 @@ namespace polyA
     public class Program
     {
         private const bool writeOutput = false;
-        private const string allSamFile = @"G:\code\csep527\RNAseq\readoutput.sam";
+        //private const string allSamFile = @"G:\code\csep527\RNAseq\readoutput.sam";
         private const string outputFileFormat = @"G:\code\csep527\RNAseq\readoutput_{0}.sam";
+
         public const int MinimumPolyATailLength = 5;
         public const double RnaAccuracyRate = (14.0 / 15.0);
+        public const double TailMatchRatio = 0.4;
 
+        /// <summary>
+        /// Filter condition to primary filtering
+        /// </summary>
+        /// <param name="alignmentLine"></param>
+        /// <returns></returns>
         private static bool AlignmentFilter(AlignmentLine alignmentLine)
         {
             int totalCount = 0;
             int countOfA = 0;
             int aTailLength = 0;
 
+            // Skip unmapped sequences
             if (alignmentLine.Cigar.Equals("*"))
             {
                 return true;
@@ -30,6 +38,7 @@ namespace polyA
 
             char[] sequence = alignmentLine.Sequence.ToCharArray();
 
+            // Ensure read has minimum length AA...AA tail with defined read accuracy
             for (int i = sequence.Length - 1; i >= 0; i--)
             {
                 if (sequence[i] == 'N')
@@ -50,7 +59,8 @@ namespace polyA
                     }
                 }
 
-                if (totalCount - countOfA > (1-Program.RnaAccuracyRate) * 75)
+                // Skip if too many non A's encountered (i.e. greater than permitted by read errors)
+                if (totalCount - countOfA > (1 - Program.RnaAccuracyRate) * 75)
                 {
                     break;
                 }
@@ -66,25 +76,37 @@ namespace polyA
             }
         }
 
+        /// <summary>
+        /// Main method to select candidates and run various model
+        /// </summary>
+        /// <param name="args"></param>
         static void Main(string[] args)
         {
-            var result = GetCandidates();
+            //Get candidates from file
+            var result = GetCandidates(args[0]);
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             double[,] baseDistribution = GetBaseDistribution();
 
-            Console.WriteLine("WMM0");
+            Console.WriteLine("WMM0 Model");
             WeightMatrixModel model = new WeightMatrixModel(GetWMM0Distribution(), baseDistribution);
             model.Match(result);
-            PrintOutputDistribution(model.OutputDistribution);
+            Console.WriteLine();
 
-            Console.WriteLine("WMM1");
+            Console.WriteLine("WMM1 Model");
             model = new WeightMatrixModel(GetWMM1Distribution(), baseDistribution);
             model.Match(result);
-            PrintOutputDistribution(model.OutputDistribution);
+            Console.WriteLine();
 
-            Console.WriteLine("WMM2");
+            Console.WriteLine("WMM2 Model");
+            //PrintOutputDistribution(model.OutputDistribution);
             model = new WeightMatrixModel(model.OutputDistribution, baseDistribution);
             model.Match(result);
-            PrintOutputDistribution(model.OutputDistribution);
+            Console.WriteLine();
+
+            Console.WriteLine("Time taken(s) to run 3 WMMs : {0}", stopwatch.ElapsedMilliseconds / 1000);
+            Console.WriteLine();
         }
 
         private static void PrintOutputDistribution(double[,] outputDistribution)
@@ -93,7 +115,7 @@ namespace polyA
             {
                 for (int j = 0; j < 6; j++)
                 {
-                    Console.Write(Math.Round(outputDistribution[i, j],4));
+                    Console.Write(Math.Round(outputDistribution[i, j], 4));
                     Console.Write("\t");
                 }
                 Console.WriteLine();
@@ -156,8 +178,14 @@ namespace polyA
             return distribution;
         }
 
-        private static List<AlignmentLine> GetCandidates()
+        private static List<AlignmentLine> GetCandidates(string fileName)
         {
+            Console.WriteLine("Candidate Selection Conditions");
+            Console.WriteLine("Condition Minimum A-Tail Length: {0}", MinimumPolyATailLength);
+            Console.WriteLine("Read Accuracy percentage : {0:0.00}", RnaAccuracyRate * 100);
+            Console.WriteLine("Minimum poly-A tail to genome mismatch percentage : {0:0.00}", (1 - TailMatchRatio) * 100);
+            Console.WriteLine();
+
             int totalCount = 0;
             int sequenceCount = 0;
             string line;
@@ -165,8 +193,8 @@ namespace polyA
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            // Read the file and display it line by line.
-            StreamReader samFile = new StreamReader(allSamFile);
+            // Read the file
+            StreamReader samFile = new StreamReader(fileName);
             StreamWriter outputFile = null;
 
             if (writeOutput)
@@ -197,14 +225,20 @@ namespace polyA
                         continue;
                     }
 
+                    // Fix read errors at the beginning ,end or in middle by ignoring them for mismatch numbers
+                    // We are optimistic that those match the reference sequence
                     alignment.FixUnidentifiedReads();
 
+                    // Skip if read and reference genome match pretty much
                     if (alignment.NumMismatches <= 2)
                     {
                         continue;
                     }
 
+                    // Find the polyA tail and its cleavage site
                     alignment.FindCleavageSite();
+
+                    // Skip if could not find polyA tail
                     if (alignment.CleavageSite < 0)
                     {
                         continue;
@@ -213,7 +247,7 @@ namespace polyA
                     if (writeOutput)
                     {
                         outputFile.Write(line);
-                        outputFile.WriteLine("\t{0}", alignment.CleavageMarkedSequence);
+                        outputFile.WriteLine("\t{0}\t{1}", alignment.CleavageMarkedSequence, alignment.ReferenceSequence);
                     }
 
                     result.Add(alignment);
@@ -228,8 +262,8 @@ namespace polyA
                 outputFile.Close();
             }
 
-            Console.WriteLine("Condition Minimum A-Tail Length: {0}, RNA Accuracy: {1}", MinimumPolyATailLength,RnaAccuracyRate);
-            Console.WriteLine("{0} candidates selected out of {1} reads examined. Time taken(s):{2}", sequenceCount, totalCount, stopwatch.ElapsedMilliseconds / 1000);
+            Console.WriteLine("{0} candidates selected out of {1} reads examined.\nTime taken(s) to select candidates:{2}", sequenceCount, totalCount, stopwatch.ElapsedMilliseconds / 1000);
+            Console.WriteLine();
             return result;
         }
     }

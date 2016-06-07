@@ -6,13 +6,18 @@ using System.Threading.Tasks;
 
 namespace polyA
 {
+    /// <summary>
+    /// Class to match with provided WMM
+    /// </summary>
     public class WeightMatrixModel
     {
         private double[,] weightDistribution;
         private double[,] baseDistribution;
-
         private double[,] outputDistribution;
 
+        /// <summary>
+        /// Distribution resulted by doing MEME on 6mers
+        /// </summary>
         public double[,] OutputDistribution
         {
             get
@@ -27,19 +32,26 @@ namespace polyA
             this.baseDistribution = baseDistribution;
         }
 
+        /// <summary>
+        /// WMM match
+        /// </summary>
+        /// <param name="alignments"></param>
         public void Match(List<AlignmentLine> alignments)
         {
             PrintRelativeEntropy();
+
             double hitCount = 0;
             double sumCleavageDistance = 0.0;
             this.outputDistribution = new double[4, 6];
 
             foreach (AlignmentLine alignment in alignments)
             {
+                // Replace Ns with Ts and remove inserts *
                 string sequence = AdjustSequence(alignment.CleavageMarkedSequence.Split('.')[0]);
 
                 double maxLogRatio = double.MinValue;
                 int motifPosition = -1;
+
                 for (int i = 0; i <= sequence.Length - 6; i++)
                 {
                     string motif = sequence.Substring(i, 6);
@@ -71,9 +83,6 @@ namespace polyA
                 {
                     hitCount++;
                     sumCleavageDistance += sequence.Length - motifPosition;
-                    //Console.WriteLine(motifPosition);
-                    //Console.WriteLine(sequence.Length - motifPosition);
-                    //Console.WriteLine();
                 }
             }
 
@@ -91,10 +100,13 @@ namespace polyA
                 }
             }
 
-            Console.WriteLine(hitCount);
-            Console.WriteLine(sumCleavageDistance / hitCount);
+            Console.WriteLine("Number of Hits : {0}", hitCount);
+            Console.WriteLine("Average distance: {0}", sumCleavageDistance / hitCount);
         }
 
+        /// <summary>
+        /// Print relative entropy for WMM
+        /// </summary>
         private void PrintRelativeEntropy()
         {
             double relativeEntropy = 0.0;
@@ -109,7 +121,7 @@ namespace polyA
                 }
             }
 
-            Console.WriteLine(relativeEntropy);
+            Console.WriteLine("Relative Entropy : {0}", relativeEntropy);
         }
 
         private int GetIndex(char c)
@@ -129,6 +141,11 @@ namespace polyA
             }
         }
 
+        /// <summary>
+        /// Replace Ns with Ts and remove inserts *
+        /// </summary>
+        /// <param name="sequence"></param>
+        /// <returns></returns>
         private string AdjustSequence(string sequence)
         {
             StringBuilder adjustedSequence = new StringBuilder();
